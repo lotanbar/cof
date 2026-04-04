@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -185,10 +186,16 @@ fun QuizScreen(
                             val noteIndex = rowIndex * 6 + colIndex
                             val isScales = uiState.mode == QuizMode.SCALES
                             val orderIndex = if (isScales) uiState.selectedNotes.indexOf(noteIndex) else -1
+                            val answerIndex = if (uiState.showingAnswer) uiState.answerNoteIndices.indexOf(noteIndex) else -1
                             NoteButton(
                                 label = note,
                                 selected = if (isScales) orderIndex >= 0 else uiState.selectedNoteIndex == noteIndex,
-                                orderNumber = if (orderIndex >= 0) orderIndex + 1 else null,
+                                isAnswer = answerIndex >= 0,
+                                orderNumber = when {
+                                    answerIndex >= 0 && uiState.answerNoteIndices.size > 1 -> answerIndex + 1
+                                    orderIndex >= 0 -> orderIndex + 1
+                                    else -> null
+                                },
                                 modifier = Modifier
                                     .weight(if (note.contains('/')) 1.5f else 1.0f)
                                     .fillMaxHeight(),
@@ -201,24 +208,42 @@ fun QuizScreen(
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── SUBMIT (10%) ──────────────────────────────────────────────
-            Box(
+            // ── SHOW ANSWER + SUBMIT (10%) ────────────────────────────────
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(10f)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Button(
-                    onClick = { viewModel.submit() },
-                    enabled = !uiState.showWrong && when (uiState.mode) {
-                        QuizMode.SCALES -> true  // empty selection is valid (e.g. C Major has no accidentals)
-                        QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(8.dp),
+                // Show Answer icon button
+                IconButton(
+                    onClick = { viewModel.showAnswer() },
+                    enabled = !uiState.showWrong,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                        .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp))
+                        .border(1.dp, Color(0xFF333333), RoundedCornerShape(8.dp)),
                 ) {
-                    Text("Submit", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.Default.Lightbulb,
+                        contentDescription = "Show Answer",
+                        tint = if (uiState.showingAnswer) Color(0xFFFFD700) else Color(0xFF666666),
+                    )
+                }
+
+                // Submit button — Scales mode only (Circle auto-submits on tap)
+                if (uiState.mode == QuizMode.SCALES) {
+                    Button(
+                        onClick = { viewModel.submit() },
+                        enabled = !uiState.showWrong && !uiState.showingAnswer,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        shape = RoundedCornerShape(8.dp),
+                    ) {
+                        Text("Submit", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -250,15 +275,27 @@ fun QuizScreen(
 private fun NoteButton(
     label: String,
     selected: Boolean,
+    isAnswer: Boolean,
     orderNumber: Int?,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val bgColor     = if (selected) Color.White else Color(0xFF080808)
-    val textColor   = if (selected) Color.Black else Color(0xFFDDDDDD)
-    val borderColor = if (selected) Color.White else Color(0xFF1E1E1E)
+    val bgColor     = when {
+        isAnswer   -> Color(0xFF3A2E00)
+        selected   -> Color.White
+        else       -> Color(0xFF080808)
+    }
+    val textColor   = when {
+        isAnswer   -> Color(0xFFFFD700)
+        selected   -> Color.Black
+        else       -> Color(0xFFDDDDDD)
+    }
+    val borderColor = when {
+        isAnswer   -> Color(0xFFFFD700)
+        selected   -> Color.White
+        else       -> Color(0xFF1E1E1E)
+    }
 
-    // Split "C#/Db" into two lines for display
     val displayLines = label.split('/')
 
     Box(
@@ -285,9 +322,13 @@ private fun NoteButton(
         if (orderNumber != null) {
             Text(
                 text = orderNumber.toString(),
-                fontSize = 10.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (selected) Color(0xFF555555) else Color(0xFF888888),
+                color = when {
+                    isAnswer -> Color(0xFFFFD700)
+                    selected -> Color(0xFF555555)
+                    else     -> Color(0xFF888888)
+                },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(3.dp),

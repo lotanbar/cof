@@ -24,9 +24,11 @@ data class QuizUiState(
     val circleType: CircleType = CircleType.FIFTHS,
     val scaleType: ScaleType? = null,
     val rootNoteIndex: Int = 0,
-    val selectedNoteIndex: Int? = null,       // Circle mode: single selection
-    val selectedNotes: List<Int> = emptyList(), // Scales mode: ordered sequence
+    val selectedNoteIndex: Int? = null,         // Circle mode: single selection
+    val selectedNotes: List<Int> = emptyList(),  // Scales mode: ordered sequence
     val showWrong: Boolean = false,
+    val showingAnswer: Boolean = false,
+    val answerNoteIndices: List<Int> = emptyList(), // populated when showingAnswer = true
 )
 
 class QuizViewModel : ViewModel() {
@@ -57,9 +59,20 @@ class QuizViewModel : ViewModel() {
 
     fun selectNote(noteIndex: Int) {
         if (_uiState.value.showWrong) return
+
+        // Dismiss answer display on any tap
+        if (_uiState.value.showingAnswer) {
+            _uiState.update { it.copy(showingAnswer = false, answerNoteIndices = emptyList()) }
+        }
+
         val state = _uiState.value
         if (state.mode == QuizMode.CIRCLE) {
-            _uiState.update { it.copy(selectedNoteIndex = noteIndex) }
+            // Auto-submit on single tap
+            val correct = when (state.circleType) {
+                CircleType.FIFTHS  -> (state.rootNoteIndex + 7) % 12
+                CircleType.FOURTHS -> (state.rootNoteIndex + 5) % 12
+            }
+            if (noteIndex == correct) generateNextQuestion() else showWrongThenClear()
         } else {
             val current = state.selectedNotes
             when {
@@ -71,6 +84,28 @@ class QuizViewModel : ViewModel() {
                 // Tapping a non-last already-selected note → do nothing
             }
         }
+    }
+
+    fun showAnswer() {
+        val state = _uiState.value
+        if (state.showWrong) return
+        if (state.showingAnswer) {
+            _uiState.update { it.copy(showingAnswer = false, answerNoteIndices = emptyList()) }
+            return
+        }
+        val answer: List<Int> = when (state.mode) {
+            QuizMode.CIRCLE -> listOf(when (state.circleType) {
+                CircleType.FIFTHS  -> (state.rootNoteIndex + 7) % 12
+                CircleType.FOURTHS -> (state.rootNoteIndex + 5) % 12
+            })
+            QuizMode.SCALES -> correctAccidentals(state.rootNoteIndex, state.scaleType ?: return)
+        }
+        _uiState.update { it.copy(
+            showingAnswer = true,
+            answerNoteIndices = answer,
+            selectedNoteIndex = null,
+            selectedNotes = emptyList(),
+        ) }
     }
 
     fun submit() {

@@ -67,12 +67,7 @@ class QuizViewModel : ViewModel() {
 
         val state = _uiState.value
         if (state.mode == QuizMode.CIRCLE) {
-            // Auto-submit on single tap
-            val correct = when (state.circleType) {
-                CircleType.FIFTHS  -> (state.rootNoteIndex + 7) % 12
-                CircleType.FOURTHS -> (state.rootNoteIndex + 5) % 12
-            }
-            if (noteIndex == correct) generateNextQuestion() else showWrongThenClear()
+            _uiState.update { it.copy(selectedNoteIndex = noteIndex) }
         } else {
             val current = state.selectedNotes
             when {

@@ -234,16 +234,17 @@ fun QuizScreen(
                     )
                 }
 
-                // Submit button — Scales mode only (Circle auto-submits on tap)
-                if (uiState.mode == QuizMode.SCALES) {
-                    Button(
-                        onClick = { viewModel.submit() },
-                        enabled = !uiState.showWrong && !uiState.showingAnswer,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        shape = RoundedCornerShape(8.dp),
-                    ) {
-                        Text("Submit", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    }
+                // Submit button — both modes
+                Button(
+                    onClick = { viewModel.submit() },
+                    enabled = !uiState.showWrong && !uiState.showingAnswer && when (uiState.mode) {
+                        QuizMode.SCALES -> true
+                        QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
+                    },
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text("Submit", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

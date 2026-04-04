@@ -93,7 +93,7 @@ class QuizViewModel : ViewModel() {
                 CircleType.FIFTHS  -> (state.rootNoteIndex + 7) % 12
                 CircleType.FOURTHS -> (state.rootNoteIndex + 5) % 12
             })
-            QuizMode.SCALES -> correctAccidentals(state.rootNoteIndex, state.scaleType ?: return)
+            QuizMode.SCALES -> correctScaleNotes(state.rootNoteIndex, state.scaleType ?: return)
         }
         _uiState.update { it.copy(
             showingAnswer = true,
@@ -122,7 +122,7 @@ class QuizViewModel : ViewModel() {
             }
             QuizMode.SCALES -> {
                 val scaleType = state.scaleType ?: return
-                val correct = correctAccidentals(state.rootNoteIndex, scaleType)
+                val correct = correctScaleNotes(state.rootNoteIndex, scaleType)
                 if (state.selectedNotes == correct) {
                     generateNextQuestion()
                 } else {
@@ -140,8 +140,13 @@ class QuizViewModel : ViewModel() {
         }
     }
 
-    private fun correctAccidentals(rootIndex: Int, type: ScaleType): List<Int> =
-        KEY_ACCIDENTALS[Pair(rootIndex, type)] ?: emptyList()
+    // Returns all 7 scale notes sorted in ascending cycle order:
+    // starting from one semitone above root, wrapping back to root.
+    private fun correctScaleNotes(rootIndex: Int, type: ScaleType): List<Int> {
+        val intervals = if (type == ScaleType.MAJOR) MAJOR_INTERVALS else MINOR_INTERVALS
+        val noteIndices = intervals.map { (rootIndex + it) % 12 }
+        return noteIndices.sortedBy { (it - rootIndex - 1 + 12) % 12 }
+    }
 
     private fun generateNextQuestion() {
         val mode = pickMode()
@@ -172,36 +177,7 @@ class QuizViewModel : ViewModel() {
     }
 
     companion object {
-        // Ordered accidentals (sharps or flats) for every key, mapped to chromatic indices.
-        // Sharps order: F#(6) C#(1) G#(8) D#(3) A#(10) [E#=F(5)] [B#=C(0)]
-        // Flats order:  Bb(10) Eb(3) Ab(8) Db(1) Gb(6)  [Cb=B(11)] [Fb=E(4)]
-        private val KEY_ACCIDENTALS: Map<Pair<Int, ScaleType>, List<Int>> = mapOf(
-            // ── Major keys — accidentals in ascending scale order from root ──
-            Pair(0,  ScaleType.MAJOR) to emptyList(),                           // C  — none
-            Pair(7,  ScaleType.MAJOR) to listOf(6),                             // G  — F#
-            Pair(2,  ScaleType.MAJOR) to listOf(6, 1),                         // D  — F# C#
-            Pair(9,  ScaleType.MAJOR) to listOf(1, 6, 8),                      // A  — C# F# G#
-            Pair(4,  ScaleType.MAJOR) to listOf(6, 8, 1, 3),                   // E  — F# G# C# D#
-            Pair(11, ScaleType.MAJOR) to listOf(1, 3, 6, 8, 10),               // B  — C# D# F# G# A#
-            Pair(6,  ScaleType.MAJOR) to listOf(6, 8, 10, 11, 1, 3),          // Gb — Gb Ab Bb Cb(B) Db Eb
-            Pair(1,  ScaleType.MAJOR) to listOf(1, 3, 6, 8, 10),               // Db — Db Eb Gb Ab Bb
-            Pair(8,  ScaleType.MAJOR) to listOf(8, 10, 1, 3),                  // Ab — Ab Bb Db Eb
-            Pair(3,  ScaleType.MAJOR) to listOf(3, 8, 10),                     // Eb — Eb Ab Bb
-            Pair(10, ScaleType.MAJOR) to listOf(10, 3),                        // Bb — Bb Eb
-            Pair(5,  ScaleType.MAJOR) to listOf(10),                           // F  — Bb
-            // ── Minor keys — accidentals in ascending scale order from root ──
-            Pair(9,  ScaleType.MINOR) to emptyList(),                          // Am — none
-            Pair(4,  ScaleType.MINOR) to listOf(6),                            // Em — F#
-            Pair(11, ScaleType.MINOR) to listOf(1, 6),                        // Bm — C# F#
-            Pair(6,  ScaleType.MINOR) to listOf(6, 8, 1),                     // F#m— F# G# C#
-            Pair(1,  ScaleType.MINOR) to listOf(1, 3, 6, 8),                  // C#m— C# D# F# G#
-            Pair(8,  ScaleType.MINOR) to listOf(8, 10, 1, 3, 6),              // G#m— G# A# C# D# F#
-            Pair(3,  ScaleType.MINOR) to listOf(3, 6, 8, 10, 11, 1),         // Ebm— Eb Gb Ab Bb Cb(B) Db
-            Pair(10, ScaleType.MINOR) to listOf(10, 1, 3, 6, 8),              // Bbm— Bb Db Eb Gb Ab
-            Pair(5,  ScaleType.MINOR) to listOf(8, 10, 1, 3),                 // Fm — Ab Bb Db Eb
-            Pair(0,  ScaleType.MINOR) to listOf(3, 8, 10),                    // Cm — Eb Ab Bb
-            Pair(7,  ScaleType.MINOR) to listOf(10, 3),                       // Gm — Bb Eb
-            Pair(2,  ScaleType.MINOR) to listOf(10),                          // Dm — Bb
-        )
+        private val MAJOR_INTERVALS = listOf(0, 2, 4, 5, 7, 9, 11)
+        private val MINOR_INTERVALS = listOf(0, 2, 3, 5, 7, 8, 10)
     }
 }

@@ -163,8 +163,7 @@ fun QuizScreen(
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
             // ── NOTE BUTTONS (50%) ────────────────────────────────────────
-            // Scales mode: only accidental-eligible notes (sharps/flats + E=Fb + B=Cb)
-            // Circle mode: all 12 chromatic notes (any note can be the answer)
+            // All 12 notes, ordered from one semitone above root up to root itself.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,22 +171,10 @@ fun QuizScreen(
                     .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                val noteRows: List<List<Int>> = if (uiState.mode == QuizMode.SCALES) {
-                    // Sharps/flats: C#/Db(1) D#/Eb(3) F#/Gb(6) G#/Ab(8) A#/Bb(10)
-                    // Odd naturals: E(4)=Fb, B(11)=Cb
-                    listOf(
-                        listOf(1, 3, 4),   // C#/Db  D#/Eb  E
-                        listOf(6, 8, 10),  // F#/Gb  G#/Ab  A#/Bb
-                        listOf(11),        // B
-                    )
-                } else {
-                    listOf(
-                        listOf(0, 1, 2),
-                        listOf(3, 4, 5),
-                        listOf(6, 7, 8),
-                        listOf(9, 10, 11),
-                    )
-                }
+                val startNote = (uiState.rootNoteIndex + 1) % 12
+                val noteRows: List<List<Int>> = (0 until 12)
+                    .map { (startNote + it) % 12 }
+                    .chunked(3)
 
                 noteRows.forEach { rowIndices ->
                     Row(

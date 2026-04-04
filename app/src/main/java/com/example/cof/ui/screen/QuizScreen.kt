@@ -106,11 +106,11 @@ fun QuizScreen(
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── MIDDLE (50%) ──────────────────────────────────────────────
+            // ── MIDDLE (35%) ──────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(50f),
+                    .weight(35f),
                 contentAlignment = Alignment.Center,
             ) {
                 if (uiState.mode == QuizMode.CIRCLE) {
@@ -133,7 +133,7 @@ fun QuizScreen(
                         Text(
                             text = CHROMATIC_NOTES[uiState.rootNoteIndex],
                             fontSize = 100.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = Color.White,
                             textAlign = TextAlign.Center,
                             style = NoFontPadding,
@@ -152,7 +152,7 @@ fun QuizScreen(
                     Text(
                         text = CHROMATIC_NOTES[uiState.rootNoteIndex],
                         fontSize = 100.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = Color.White,
                         textAlign = TextAlign.Center,
                         style = NoFontPadding,
@@ -162,19 +162,23 @@ fun QuizScreen(
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── NOTE BUTTONS (35%) — 6×2 grid ────────────────────────────
+            // ── NOTE BUTTONS (50%) — 3×4 grid ────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(35f)
+                    .weight(50f)
                     .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                // Row 1: C  C#/Db  D  D#/Eb  E  F  (indices 0–5)
-                // Row 2: F#/Gb  G  G#/Ab  A  A#/Bb  B  (indices 6–11)
+                // Row 1: C  C#/Db  D        (indices 0–2)
+                // Row 2: D#/Eb  E  F        (indices 3–5)
+                // Row 3: F#/Gb  G  G#/Ab    (indices 6–8)
+                // Row 4: A  A#/Bb  B        (indices 9–11)
                 listOf(
-                    CHROMATIC_NOTES.subList(0, 6),
-                    CHROMATIC_NOTES.subList(6, 12),
+                    CHROMATIC_NOTES.subList(0, 3),
+                    CHROMATIC_NOTES.subList(3, 6),
+                    CHROMATIC_NOTES.subList(6, 9),
+                    CHROMATIC_NOTES.subList(9, 12),
                 ).forEachIndexed { rowIndex, rowNotes ->
                     Row(
                         modifier = Modifier
@@ -183,7 +187,7 @@ fun QuizScreen(
                         horizontalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
                         rowNotes.forEachIndexed { colIndex, note ->
-                            val noteIndex = rowIndex * 6 + colIndex
+                            val noteIndex = rowIndex * 3 + colIndex
                             val isScales = uiState.mode == QuizMode.SCALES
                             val orderIndex = if (isScales) uiState.selectedNotes.indexOf(noteIndex) else -1
                             val answerIndex = if (uiState.showingAnswer) uiState.answerNoteIndices.indexOf(noteIndex) else -1
@@ -284,12 +288,12 @@ private fun NoteButton(
     val bgColor     = when {
         isAnswer   -> Color(0xFF3A2E00)
         selected   -> Color.White
-        else       -> Color(0xFF080808)
+        else       -> Color(0xFF000000)
     }
     val textColor   = when {
         isAnswer   -> Color(0xFFFFD700)
         selected   -> Color.Black
-        else       -> Color(0xFFDDDDDD)
+        else       -> Color.White
     }
     val borderColor = when {
         isAnswer   -> Color(0xFFFFD700)
@@ -312,11 +316,11 @@ private fun NoteButton(
             displayLines.forEach { line ->
                 Text(
                     text = line,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     color = textColor,
                     textAlign = TextAlign.Center,
-                    lineHeight = 24.sp,
+                    lineHeight = 30.sp,
                 )
             }
         }

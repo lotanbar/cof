@@ -176,30 +176,30 @@ class QuizViewModel : ViewModel() {
         // Sharps order: F#(6) C#(1) G#(8) D#(3) A#(10) [E#=F(5)] [B#=C(0)]
         // Flats order:  Bb(10) Eb(3) Ab(8) Db(1) Gb(6)  [Cb=B(11)] [Fb=E(4)]
         private val KEY_ACCIDENTALS: Map<Pair<Int, ScaleType>, List<Int>> = mapOf(
-            // ── Major keys ───────────────────────────────────────────────────
+            // ── Major keys — accidentals in ascending scale order from root ──
             Pair(0,  ScaleType.MAJOR) to emptyList(),                           // C  — none
             Pair(7,  ScaleType.MAJOR) to listOf(6),                             // G  — F#
             Pair(2,  ScaleType.MAJOR) to listOf(6, 1),                         // D  — F# C#
-            Pair(9,  ScaleType.MAJOR) to listOf(6, 1, 8),                      // A  — F# C# G#
-            Pair(4,  ScaleType.MAJOR) to listOf(6, 1, 8, 3),                   // E  — F# C# G# D#
-            Pair(11, ScaleType.MAJOR) to listOf(6, 1, 8, 3, 10),               // B  — F# C# G# D# A#
-            Pair(6,  ScaleType.MAJOR) to listOf(10, 3, 8, 1, 6, 11),          // Gb — Bb Eb Ab Db Gb Cb(B)
-            Pair(1,  ScaleType.MAJOR) to listOf(10, 3, 8, 1, 6),               // Db — Bb Eb Ab Db Gb
-            Pair(8,  ScaleType.MAJOR) to listOf(10, 3, 8, 1),                  // Ab — Bb Eb Ab Db
-            Pair(3,  ScaleType.MAJOR) to listOf(10, 3, 8),                     // Eb — Bb Eb Ab
+            Pair(9,  ScaleType.MAJOR) to listOf(1, 6, 8),                      // A  — C# F# G#
+            Pair(4,  ScaleType.MAJOR) to listOf(6, 8, 1, 3),                   // E  — F# G# C# D#
+            Pair(11, ScaleType.MAJOR) to listOf(1, 3, 6, 8, 10),               // B  — C# D# F# G# A#
+            Pair(6,  ScaleType.MAJOR) to listOf(6, 8, 10, 11, 1, 3),          // Gb — Gb Ab Bb Cb(B) Db Eb
+            Pair(1,  ScaleType.MAJOR) to listOf(1, 3, 6, 8, 10),               // Db — Db Eb Gb Ab Bb
+            Pair(8,  ScaleType.MAJOR) to listOf(8, 10, 1, 3),                  // Ab — Ab Bb Db Eb
+            Pair(3,  ScaleType.MAJOR) to listOf(3, 8, 10),                     // Eb — Eb Ab Bb
             Pair(10, ScaleType.MAJOR) to listOf(10, 3),                        // Bb — Bb Eb
             Pair(5,  ScaleType.MAJOR) to listOf(10),                           // F  — Bb
-            // ── Minor keys ───────────────────────────────────────────────────
+            // ── Minor keys — accidentals in ascending scale order from root ──
             Pair(9,  ScaleType.MINOR) to emptyList(),                          // Am — none
             Pair(4,  ScaleType.MINOR) to listOf(6),                            // Em — F#
-            Pair(11, ScaleType.MINOR) to listOf(6, 1),                        // Bm — F# C#
-            Pair(6,  ScaleType.MINOR) to listOf(6, 1, 8),                     // F#m— F# C# G#
-            Pair(1,  ScaleType.MINOR) to listOf(6, 1, 8, 3),                  // C#m— F# C# G# D#
-            Pair(8,  ScaleType.MINOR) to listOf(6, 1, 8, 3, 10),              // G#m— F# C# G# D# A#
-            Pair(3,  ScaleType.MINOR) to listOf(10, 3, 8, 1, 6, 11),         // Ebm— Bb Eb Ab Db Gb Cb(B)
-            Pair(10, ScaleType.MINOR) to listOf(10, 3, 8, 1, 6),              // Bbm— Bb Eb Ab Db Gb
-            Pair(5,  ScaleType.MINOR) to listOf(10, 3, 8, 1),                 // Fm — Bb Eb Ab Db
-            Pair(0,  ScaleType.MINOR) to listOf(10, 3, 8),                    // Cm — Bb Eb Ab
+            Pair(11, ScaleType.MINOR) to listOf(1, 6),                        // Bm — C# F#
+            Pair(6,  ScaleType.MINOR) to listOf(6, 8, 1),                     // F#m— F# G# C#
+            Pair(1,  ScaleType.MINOR) to listOf(1, 3, 6, 8),                  // C#m— C# D# F# G#
+            Pair(8,  ScaleType.MINOR) to listOf(8, 10, 1, 3, 6),              // G#m— G# A# C# D# F#
+            Pair(3,  ScaleType.MINOR) to listOf(3, 6, 8, 10, 11, 1),         // Ebm— Eb Gb Ab Bb Cb(B) Db
+            Pair(10, ScaleType.MINOR) to listOf(10, 1, 3, 6, 8),              // Bbm— Bb Db Eb Gb Ab
+            Pair(5,  ScaleType.MINOR) to listOf(8, 10, 1, 3),                 // Fm — Ab Bb Db Eb
+            Pair(0,  ScaleType.MINOR) to listOf(3, 8, 10),                    // Cm — Eb Ab Bb
             Pair(7,  ScaleType.MINOR) to listOf(10, 3),                       // Gm — Bb Eb
             Pair(2,  ScaleType.MINOR) to listOf(10),                          // Dm — Bb
         )

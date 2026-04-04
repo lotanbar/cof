@@ -183,9 +183,12 @@ fun QuizScreen(
                     ) {
                         rowNotes.forEachIndexed { colIndex, note ->
                             val noteIndex = rowIndex * 6 + colIndex
+                            val isScales = uiState.mode == QuizMode.SCALES
+                            val orderIndex = if (isScales) uiState.selectedNotes.indexOf(noteIndex) else -1
                             NoteButton(
                                 label = note,
-                                selected = uiState.selectedNoteIndex == noteIndex,
+                                selected = if (isScales) orderIndex >= 0 else uiState.selectedNoteIndex == noteIndex,
+                                orderNumber = if (orderIndex >= 0) orderIndex + 1 else null,
                                 modifier = Modifier
                                     .weight(if (note.contains('/')) 1.5f else 1.0f)
                                     .fillMaxHeight(),
@@ -208,7 +211,10 @@ fun QuizScreen(
             ) {
                 Button(
                     onClick = { viewModel.submit() },
-                    enabled = uiState.selectedNoteIndex != null && !uiState.showWrong,
+                    enabled = !uiState.showWrong && when (uiState.mode) {
+                        QuizMode.SCALES -> uiState.selectedNotes.isNotEmpty()
+                        QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
+                    },
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(8.dp),
                 ) {
@@ -244,6 +250,7 @@ fun QuizScreen(
 private fun NoteButton(
     label: String,
     selected: Boolean,
+    orderNumber: Int?,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
@@ -259,9 +266,11 @@ private fun NoteButton(
             .background(bgColor, RoundedCornerShape(6.dp))
             .border(1.dp, borderColor, RoundedCornerShape(6.dp))
             .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             displayLines.forEach { line ->
                 Text(
                     text = line,
@@ -272,6 +281,17 @@ private fun NoteButton(
                     lineHeight = 24.sp,
                 )
             }
+        }
+        if (orderNumber != null) {
+            Text(
+                text = orderNumber.toString(),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (selected) Color(0xFF555555) else Color(0xFF888888),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(3.dp),
+            )
         }
     }
 }

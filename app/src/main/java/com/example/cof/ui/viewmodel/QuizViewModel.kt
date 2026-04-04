@@ -24,7 +24,8 @@ data class QuizUiState(
     val circleType: CircleType = CircleType.FIFTHS,
     val scaleType: ScaleType? = null,
     val rootNoteIndex: Int = 0,
-    val selectedNoteIndex: Int? = null,
+    val selectedNoteIndex: Int? = null,       // Circle mode: single selection
+    val selectedNotes: List<Int> = emptyList(), // Scales mode: ordered sequence
     val showWrong: Boolean = false,
 )
 
@@ -56,31 +57,66 @@ class QuizViewModel : ViewModel() {
 
     fun selectNote(noteIndex: Int) {
         if (_uiState.value.showWrong) return
-        _uiState.update { it.copy(selectedNoteIndex = noteIndex) }
+        val state = _uiState.value
+        if (state.mode == QuizMode.CIRCLE) {
+            _uiState.update { it.copy(selectedNoteIndex = noteIndex) }
+        } else {
+            val current = state.selectedNotes
+            when {
+                current.isNotEmpty() && current.last() == noteIndex ->
+                    // One-step undo: tapping the last selected note removes it
+                    _uiState.update { it.copy(selectedNotes = current.dropLast(1)) }
+                noteIndex !in current ->
+                    _uiState.update { it.copy(selectedNotes = current + noteIndex) }
+                // Tapping a non-last already-selected note → do nothing
+            }
+        }
     }
 
     fun submit() {
         val state = _uiState.value
-        val selected = state.selectedNoteIndex ?: return
         if (state.showWrong) return
 
-        val correct = when (state.mode) {
-            QuizMode.CIRCLE -> when (state.circleType) {
-                CircleType.FIFTHS  -> (state.rootNoteIndex + 7) % 12
-                CircleType.FOURTHS -> (state.rootNoteIndex + 5) % 12
+        when (state.mode) {
+            QuizMode.CIRCLE -> {
+                val selected = state.selectedNoteIndex ?: return
+                val correct = when (state.circleType) {
+                    CircleType.FIFTHS  -> (state.rootNoteIndex + 7) % 12
+                    CircleType.FOURTHS -> (state.rootNoteIndex + 5) % 12
+                }
+                if (selected == correct) {
+                    generateNextQuestion()
+                } else {
+                    showWrongThenClear()
+                }
             }
-            QuizMode.SCALES -> return // implemented in Commit 3
+            QuizMode.SCALES -> {
+                val scaleType = state.scaleType ?: return
+                if (state.selectedNotes.isEmpty()) return
+                val correct = correctScale(state.rootNoteIndex, scaleType)
+                if (state.selectedNotes == correct) {
+                    generateNextQuestion()
+                } else {
+                    showWrongThenClear()
+                }
+            }
         }
+    }
 
-        if (selected == correct) {
-            generateNextQuestion()
-        } else {
-            _uiState.update { it.copy(showWrong = true, selectedNoteIndex = null) }
-            viewModelScope.launch {
-                delay(1000)
-                _uiState.update { it.copy(showWrong = false) }
-            }
+    private fun showWrongThenClear() {
+        _uiState.update { it.copy(showWrong = true, selectedNoteIndex = null, selectedNotes = emptyList()) }
+        viewModelScope.launch {
+            delay(1000)
+            _uiState.update { it.copy(showWrong = false) }
         }
+    }
+
+    private fun correctScale(rootIndex: Int, type: ScaleType): List<Int> {
+        val intervals = when (type) {
+            ScaleType.MAJOR -> intArrayOf(0, 2, 4, 5, 7, 9, 11)
+            ScaleType.MINOR -> intArrayOf(0, 2, 3, 5, 7, 8, 10)
+        }
+        return intervals.map { (rootIndex + it) % 12 }
     }
 
     private fun generateNextQuestion() {

@@ -18,10 +18,12 @@ val CHROMATIC_NOTES = listOf(
 enum class QuizMode { SCALES, CIRCLE }
 enum class ScaleType { MAJOR, MINOR }
 enum class CircleType { FOURTHS, FIFTHS }
+enum class CircleDirection { UP, DOWN }
 
 data class QuizUiState(
     val mode: QuizMode = QuizMode.CIRCLE,
     val circleType: CircleType = CircleType.FIFTHS,
+    val circleDirection: CircleDirection = CircleDirection.UP,
     val scaleType: ScaleType? = null,
     val rootNoteIndex: Int = 0,
     val selectedNoteIndex: Int? = null,         // Circle mode: single selection
@@ -89,10 +91,7 @@ class QuizViewModel : ViewModel() {
             return
         }
         val answer: List<Int> = when (state.mode) {
-            QuizMode.CIRCLE -> listOf(when (state.circleType) {
-                CircleType.FIFTHS  -> (state.rootNoteIndex + 7) % 12
-                CircleType.FOURTHS -> (state.rootNoteIndex + 5) % 12
-            })
+            QuizMode.CIRCLE -> listOf(circleAnswer(state.rootNoteIndex, state.circleType, state.circleDirection))
             QuizMode.SCALES -> correctScaleNotes(state.rootNoteIndex, state.scaleType ?: return)
         }
         _uiState.update { it.copy(
@@ -110,10 +109,7 @@ class QuizViewModel : ViewModel() {
         when (state.mode) {
             QuizMode.CIRCLE -> {
                 val selected = state.selectedNoteIndex ?: return
-                val correct = when (state.circleType) {
-                    CircleType.FIFTHS  -> (state.rootNoteIndex + 7) % 12
-                    CircleType.FOURTHS -> (state.rootNoteIndex + 5) % 12
-                }
+                val correct = circleAnswer(state.rootNoteIndex, state.circleType, state.circleDirection)
                 if (selected == correct) {
                     generateNextQuestion()
                 } else {
@@ -150,12 +146,14 @@ class QuizViewModel : ViewModel() {
 
     private fun generateNextQuestion() {
         val mode = pickMode()
-        val circleType = if (mode == QuizMode.CIRCLE) pickCircleType() else CircleType.FIFTHS
-        val scaleType  = if (mode == QuizMode.SCALES)  pickScaleType()  else null
+        val circleType      = if (mode == QuizMode.CIRCLE) pickCircleType()      else CircleType.FIFTHS
+        val circleDirection = if (mode == QuizMode.CIRCLE) pickCircleDirection() else CircleDirection.UP
+        val scaleType       = if (mode == QuizMode.SCALES) pickScaleType()       else null
         val rootNoteIndex = Random.nextInt(12)
         _uiState.value = QuizUiState(
             mode = mode,
             circleType = circleType,
+            circleDirection = circleDirection,
             scaleType = scaleType,
             rootNoteIndex = rootNoteIndex,
         )
@@ -170,6 +168,9 @@ class QuizViewModel : ViewModel() {
     private fun pickCircleType(): CircleType =
         if (Random.nextBoolean()) CircleType.FIFTHS else CircleType.FOURTHS
 
+    private fun pickCircleDirection(): CircleDirection =
+        if (Random.nextBoolean()) CircleDirection.UP else CircleDirection.DOWN
+
     private fun pickScaleType(): ScaleType = when {
         majorEnabled && minorEnabled -> if (Random.nextBoolean()) ScaleType.MAJOR else ScaleType.MINOR
         majorEnabled -> ScaleType.MAJOR
@@ -179,5 +180,13 @@ class QuizViewModel : ViewModel() {
     companion object {
         private val MAJOR_INTERVALS = listOf(0, 2, 4, 5, 7, 9, 11)
         private val MINOR_INTERVALS = listOf(0, 2, 3, 5, 7, 8, 10)
+
+        fun circleAnswer(rootIndex: Int, type: CircleType, direction: CircleDirection): Int {
+            val interval = if (type == CircleType.FIFTHS) 7 else 5
+            return if (direction == CircleDirection.UP)
+                (rootIndex + interval) % 12
+            else
+                (rootIndex - interval + 12) % 12
+        }
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,12 +20,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cof.ui.viewmodel.CHROMATIC_NOTES
+import com.example.cof.ui.viewmodel.CircleDirection
 import com.example.cof.ui.viewmodel.CircleType
 import com.example.cof.ui.viewmodel.QuizMode
 import com.example.cof.ui.viewmodel.QuizViewModel
@@ -33,6 +36,7 @@ import com.example.cof.ui.viewmodel.ScaleType
 // Strips Android's extra font padding so arrow characters sit truly centred
 private val NoFontPadding = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizScreen(
     scalesSelected: Boolean,
@@ -49,17 +53,11 @@ fun QuizScreen(
     }
 
     val topLabel = when (uiState.mode) {
-        QuizMode.CIRCLE -> when (uiState.circleType) {
-            CircleType.FIFTHS  -> "Circle · Fifths"
-            CircleType.FOURTHS -> "Circle · Fourths"
-        }
-        QuizMode.SCALES -> when (uiState.scaleType) {
-            ScaleType.MAJOR -> "Scales · Major"
-            ScaleType.MINOR -> "Scales · Minor"
-            null            -> "Scales"
-        }
+        QuizMode.CIRCLE -> "Circle"
+        QuizMode.SCALES -> "Scales"
     }
 
+    CompositionLocalProvider(LocalRippleConfiguration provides null) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -88,7 +86,7 @@ fun QuizScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White,
+                        tint = Color(0xFFCCCCCC),
                         modifier = Modifier.size(30.dp),
                     )
                 }
@@ -97,8 +95,8 @@ fun QuizScreen(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFFCCCCCC),
                 )
                 // Invisible spacer balances the back-button so label is centred
                 Spacer(modifier = Modifier.width(48.dp))
@@ -106,68 +104,102 @@ fun QuizScreen(
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── MIDDLE (35%) ──────────────────────────────────────────────
+            // ── MIDDLE (50%) ──────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(35f),
+                    .weight(50f),
                 contentAlignment = Alignment.Center,
             ) {
                 if (uiState.mode == QuizMode.CIRCLE) {
-                    // Arrow left/right of the note in a Row
-                    val arrowText = if (uiState.circleType == CircleType.FIFTHS) "→" else "←"
-                    val isLeft = uiState.circleType == CircleType.FOURTHS
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
+                    val intervalLabel = if (uiState.circleType == CircleType.FIFTHS) "5" else "4"
+                    val isDown = uiState.circleDirection == CircleDirection.DOWN
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
-                        if (isLeft) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = null,
-                                tint = Color(0xFFCCCCCC),
-                                modifier = Modifier.size(88.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
+                        if (!isDown) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowUpward,
+                                    contentDescription = null,
+                                    tint = Color(0xFFCCCCCC),
+                                    modifier = Modifier.size(88.dp),
+                                )
+                                Text(
+                                    text = intervalLabel,
+                                    fontSize = 100.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFFCCCCCC),
+                                    style = NoFontPadding,
+                                )
+                            }
                         }
                         Text(
                             text = CHROMATIC_NOTES[uiState.rootNoteIndex],
                             fontSize = 100.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFFCCCCCC),
                             textAlign = TextAlign.Center,
                             style = NoFontPadding,
                         )
-                        if (!isLeft) {
-                            Spacer(Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = null,
-                                tint = Color(0xFFCCCCCC),
-                                modifier = Modifier.size(88.dp),
-                            )
+                        if (isDown) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDownward,
+                                    contentDescription = null,
+                                    tint = Color(0xFFCCCCCC),
+                                    modifier = Modifier.size(88.dp),
+                                )
+                                Text(
+                                    text = intervalLabel,
+                                    fontSize = 100.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFFCCCCCC),
+                                    style = NoFontPadding,
+                                )
+                            }
                         }
                     }
                 } else {
-                    Text(
-                        text = CHROMATIC_NOTES[uiState.rootNoteIndex],
-                        fontSize = 100.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        style = NoFontPadding,
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = CHROMATIC_NOTES[uiState.rootNoteIndex],
+                            fontSize = 100.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFFCCCCCC),
+                            textAlign = TextAlign.Center,
+                            style = NoFontPadding,
+                        )
+                        Text(
+                            text = when (uiState.scaleType) {
+                                ScaleType.MAJOR -> "Major"
+                                ScaleType.MINOR -> "Minor"
+                                null            -> ""
+                            },
+                            fontSize = 42.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFFCCCCCC),
+                            textAlign = TextAlign.Center,
+                            style = NoFontPadding,
+                        )
+                    }
                 }
             }
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── NOTE BUTTONS (50%) ────────────────────────────────────────
+            // ── NOTE BUTTONS (35%) ────────────────────────────────────────
             // All 12 notes, ordered from one semitone above root up to root itself.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(50f)
+                    .weight(35f)
                     .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
@@ -231,21 +263,29 @@ fun QuizScreen(
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = "Show Answer",
-                        tint = if (uiState.showingAnswer) Color(0xFFFFD700) else Color.White,
+                        tint = if (uiState.showingAnswer) Color(0xFFFFD700) else Color(0xFFCCCCCC),
                     )
                 }
 
                 // Submit button — both modes
-                Button(
+                val submitEnabled = !uiState.showWrong && !uiState.showingAnswer && when (uiState.mode) {
+                    QuizMode.SCALES -> true
+                    QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
+                }
+                OutlinedButton(
                     onClick = { viewModel.submit() },
-                    enabled = !uiState.showWrong && !uiState.showingAnswer && when (uiState.mode) {
-                        QuizMode.SCALES -> true
-                        QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
-                    },
+                    enabled = submitEnabled,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(2.dp, if (submitEnabled) Color(0xFFCCCCCC) else Color(0xFF333333)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color(0xFFCCCCCC),
+                        disabledContainerColor = Color(0xFF0A0A0A),
+                        disabledContentColor = Color(0xFF444444),
+                    ),
                 ) {
-                    Text("Submit", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Submit", fontSize = 16.sp, fontWeight = FontWeight.Normal)
                 }
             }
         }
@@ -265,12 +305,13 @@ fun QuizScreen(
                 Text(
                     text = "Wrong",
                     fontSize = 52.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     color = Color(0xFFFF5555),
                 )
             }
         }
     }
+    } // CompositionLocalProvider
 }
 
 @Composable
@@ -284,51 +325,41 @@ private fun NoteButton(
 ) {
     val bgColor     = when {
         isAnswer   -> Color(0xFF3A2E00)
-        selected   -> Color.White
         else       -> Color(0xFF000000)
     }
     val textColor   = when {
         isAnswer   -> Color(0xFFFFD700)
-        selected   -> Color.Black
-        else       -> Color.White
+        else       -> Color(0xFFCCCCCC)
     }
     val borderColor = when {
         isAnswer   -> Color(0xFFFFD700)
-        selected   -> Color.White
+        selected   -> Color(0xFFCCCCCC)
         else       -> Color(0xFF1E1E1E)
     }
-
-    val displayLines = label.split('/')
+    val borderWidth = if (selected || isAnswer) 2.dp else 1.dp
 
     Box(
         modifier = modifier
             .background(bgColor, RoundedCornerShape(6.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(6.dp))
+            .border(borderWidth, borderColor, RoundedCornerShape(6.dp))
             .clickable(onClick = onClick),
     ) {
-        Column(
+        Text(
+            text = label,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Normal,
+            color = textColor,
+            textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            displayLines.forEach { line ->
-                Text(
-                    text = line,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = textColor,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 30.sp,
-                )
-            }
-        }
+        )
         if (orderNumber != null) {
             Text(
                 text = orderNumber.toString(),
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Normal,
                 color = when {
                     isAnswer -> Color(0xFFFFD700)
-                    selected -> Color(0xFF555555)
+                    selected -> Color(0xFF888888)
                     else     -> Color(0xFF888888)
                 },
                 modifier = Modifier

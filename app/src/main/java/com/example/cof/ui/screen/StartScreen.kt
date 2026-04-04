@@ -45,6 +45,7 @@ fun StartScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StartScreenContent(
     uiState: StartUiState,
@@ -66,6 +67,7 @@ private fun StartScreenContent(
         }
     )
 
+    CompositionLocalProvider(LocalRippleConfiguration provides null) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -106,12 +108,20 @@ private fun StartScreenContent(
             Spacer(modifier = Modifier.height(40.dp))
 
             Box(modifier = Modifier.fillMaxWidth().height(64.dp)) {
-                Button(
+                OutlinedButton(
                     onClick = onStartClicked,
                     enabled = uiState.isStartEnabled,
                     modifier = Modifier.fillMaxSize(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(3.dp, if (uiState.isStartEnabled) Color(0xFFCCCCCC) else Color(0xFF333333)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color(0xFFCCCCCC),
+                        disabledContainerColor = Color(0xFF0D0D0D),
+                        disabledContentColor = Color(0xFF444444),
+                    ),
                 ) {
-                    Text(text = "START", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "START", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                 }
                 if (!uiState.isStartEnabled) {
                     Box(modifier = Modifier.fillMaxSize().clickable { showStartToast() })
@@ -124,6 +134,7 @@ private fun StartScreenContent(
             onDismiss = { bannerMessage = null },
         )
     }
+    } // CompositionLocalProvider
 }
 
 @Composable
@@ -155,7 +166,7 @@ private fun TopBanner(message: String?, onDismiss: () -> Unit) {
         ) {
             Text(
                 text = message ?: "",
-                color = Color.White,
+                color = Color(0xFFCCCCCC),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
                 textAlign = TextAlign.Center,
@@ -169,9 +180,8 @@ private fun SectionLabel(text: String) {
     Text(
         text = text,
         fontSize = 18.sp,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Medium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth(),
     )
 }
 
@@ -184,33 +194,33 @@ private fun SelectionCard(
     dimmed: Boolean = false,
 ) {
     val backgroundColor = when {
-        selected -> Color.White
         disabled -> Color(0xFF1C1C1C)
         dimmed   -> Color(0xFF0D0D0D)
         else     -> Color.Black
     }
     val textColor = when {
-        selected -> Color.Black
+        selected -> Color(0xFFCCCCCC)
         disabled -> Color(0xFF444444)
         dimmed   -> Color(0xFF555555)
-        else     -> Color.White
+        else     -> Color(0xFFCCCCCC)
     }
     val borderColor = when {
-        selected -> Color.White
+        selected -> Color(0xFFCCCCCC)
         disabled -> Color(0xFF333333)
         dimmed   -> Color(0xFF2A2A2A)
         else     -> Color(0xFF888888)
     }
+    val borderWidth = if (selected) 3.dp else 1.5.dp
 
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().height(72.dp),
         shape = RoundedCornerShape(12.dp),
         color = backgroundColor,
-        border = BorderStroke(1.5.dp, borderColor),
+        border = BorderStroke(borderWidth, borderColor),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(text = label, fontSize = 28.sp, fontWeight = FontWeight.Medium, color = textColor)
+            Text(text = label, fontSize = 28.sp, fontWeight = FontWeight.Normal, color = textColor)
         }
     }
 }

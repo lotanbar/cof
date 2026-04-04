@@ -230,7 +230,7 @@ fun QuizScreen(
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = "Show Answer",
-                        tint = if (uiState.showingAnswer) Color(0xFFFFD700) else Color(0xFF666666),
+                        tint = if (uiState.showingAnswer) Color(0xFFFFD700) else Color.White,
                     )
                 }
 

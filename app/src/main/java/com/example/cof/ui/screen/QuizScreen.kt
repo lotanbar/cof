@@ -212,7 +212,7 @@ fun QuizScreen(
                 Button(
                     onClick = { viewModel.submit() },
                     enabled = !uiState.showWrong && when (uiState.mode) {
-                        QuizMode.SCALES -> uiState.selectedNotes.isNotEmpty()
+                        QuizMode.SCALES -> true  // empty selection is valid (e.g. C Major has no accidentals)
                         QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
                     },
                     modifier = Modifier.fillMaxSize(),

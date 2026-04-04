@@ -162,7 +162,9 @@ fun QuizScreen(
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── NOTE BUTTONS (50%) — 3×4 grid ────────────────────────────
+            // ── NOTE BUTTONS (50%) ────────────────────────────────────────
+            // Scales mode: only accidental-eligible notes (sharps/flats + E=Fb + B=Cb)
+            // Circle mode: all 12 chromatic notes (any note can be the answer)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -170,24 +172,32 @@ fun QuizScreen(
                     .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                // Row 1: C  C#/Db  D        (indices 0–2)
-                // Row 2: D#/Eb  E  F        (indices 3–5)
-                // Row 3: F#/Gb  G  G#/Ab    (indices 6–8)
-                // Row 4: A  A#/Bb  B        (indices 9–11)
-                listOf(
-                    CHROMATIC_NOTES.subList(0, 3),
-                    CHROMATIC_NOTES.subList(3, 6),
-                    CHROMATIC_NOTES.subList(6, 9),
-                    CHROMATIC_NOTES.subList(9, 12),
-                ).forEachIndexed { rowIndex, rowNotes ->
+                val noteRows: List<List<Int>> = if (uiState.mode == QuizMode.SCALES) {
+                    // Sharps/flats: C#/Db(1) D#/Eb(3) F#/Gb(6) G#/Ab(8) A#/Bb(10)
+                    // Odd naturals: E(4)=Fb, B(11)=Cb
+                    listOf(
+                        listOf(1, 3, 4),   // C#/Db  D#/Eb  E
+                        listOf(6, 8, 10),  // F#/Gb  G#/Ab  A#/Bb
+                        listOf(11),        // B
+                    )
+                } else {
+                    listOf(
+                        listOf(0, 1, 2),
+                        listOf(3, 4, 5),
+                        listOf(6, 7, 8),
+                        listOf(9, 10, 11),
+                    )
+                }
+
+                noteRows.forEach { rowIndices ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
-                        rowNotes.forEachIndexed { colIndex, note ->
-                            val noteIndex = rowIndex * 3 + colIndex
+                        rowIndices.forEach { noteIndex ->
+                            val note = CHROMATIC_NOTES[noteIndex]
                             val isScales = uiState.mode == QuizMode.SCALES
                             val orderIndex = if (isScales) uiState.selectedNotes.indexOf(noteIndex) else -1
                             val answerIndex = if (uiState.showingAnswer) uiState.answerNoteIndices.indexOf(noteIndex) else -1

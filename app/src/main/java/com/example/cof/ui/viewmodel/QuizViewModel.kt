@@ -43,6 +43,7 @@ class QuizViewModel : ViewModel() {
     private var circleEnabled = true
     private var majorEnabled = false
     private var minorEnabled = false
+    private var previousRootNoteIndex: Int? = null
 
     fun init(
         scalesEnabled: Boolean,
@@ -72,13 +73,10 @@ class QuizViewModel : ViewModel() {
             _uiState.update { it.copy(selectedNoteIndex = noteIndex) }
         } else {
             val current = state.selectedNotes
-            when {
-                current.isNotEmpty() && current.last() == noteIndex ->
-                    // One-step undo: tapping the last selected note removes it
-                    _uiState.update { it.copy(selectedNotes = current.dropLast(1)) }
-                noteIndex !in current ->
-                    _uiState.update { it.copy(selectedNotes = current + noteIndex) }
-                // Tapping a non-last already-selected note → do nothing
+            if (noteIndex in current) {
+                _uiState.update { it.copy(selectedNotes = current - noteIndex) }
+            } else {
+                _uiState.update { it.copy(selectedNotes = current + noteIndex) }
             }
         }
     }
@@ -113,35 +111,54 @@ class QuizViewModel : ViewModel() {
                 if (selected == correct) {
                     generateNextQuestion()
                 } else {
-                    showWrongThenClear()
+                    showWrong()
                 }
             }
             QuizMode.SCALES -> {
                 val scaleType = state.scaleType ?: return
-                val correct = correctScaleNotes(state.rootNoteIndex, scaleType)
-                if (state.selectedNotes == correct) {
+                if (isValidScaleAnswer(state.rootNoteIndex, scaleType, state.selectedNotes)) {
                     generateNextQuestion()
                 } else {
-                    showWrongThenClear()
+                    showWrong()
                 }
             }
         }
     }
 
-    private fun showWrongThenClear() {
-        _uiState.update { it.copy(showWrong = true, selectedNoteIndex = null, selectedNotes = emptyList()) }
+    private fun showWrong() {
+        _uiState.update { it.copy(showWrong = true) }
         viewModelScope.launch {
             delay(1000)
             _uiState.update { it.copy(showWrong = false) }
         }
     }
 
-    // Returns all 7 scale notes sorted in ascending cycle order:
-    // starting from one semitone above root, wrapping back to root.
+    // Returns the canonical answer (notes 2-8) used by Show Answer.
     private fun correctScaleNotes(rootIndex: Int, type: ScaleType): List<Int> {
         val intervals = if (type == ScaleType.MAJOR) MAJOR_INTERVALS else MINOR_INTERVALS
         val noteIndices = intervals.map { (rootIndex + it) % 12 }
-        return noteIndices.sortedBy { (it - rootIndex - 1 + 12) % 12 }
+        val sorted = noteIndices.sortedBy { (it - rootIndex - 1 + 12) % 12 }
+        return sorted
+    }
+
+    // Accepts any of the three valid scale-answer forms:
+    //   a) Notes 2-8  : [n1..n6, root]
+    //   b) Notes 1-7  : [n0..n6]
+    //   c) Accidentals: sharps/flats from the scale in ascending scale-degree order
+    //      (empty list valid when scale has no accidentals, e.g. C major)
+    private fun isValidScaleAnswer(rootIndex: Int, type: ScaleType, selected: List<Int>): Boolean {
+        val intervals = if (type == ScaleType.MAJOR) MAJOR_INTERVALS else MINOR_INTERVALS
+        val n = intervals.map { (rootIndex + it) % 12 }   // scale notes in degree order
+
+        val form2to8 = n.drop(1) + n[0]
+        val form1to7 = n
+
+        val accidentalSet = setOf(1, 3, 6, 8, 10)
+        val accidentals = n.filter { it in accidentalSet }
+
+        return selected == form2to8 ||
+               selected == form1to7 ||
+               selected == accidentals
     }
 
     private fun generateNextQuestion() {
@@ -149,7 +166,9 @@ class QuizViewModel : ViewModel() {
         val circleType      = if (mode == QuizMode.CIRCLE) pickCircleType()      else CircleType.FIFTHS
         val circleDirection = if (mode == QuizMode.CIRCLE) pickCircleDirection() else CircleDirection.UP
         val scaleType       = if (mode == QuizMode.SCALES) pickScaleType()       else null
-        val rootNoteIndex = Random.nextInt(12)
+        val available = (0 until 12).filter { it != previousRootNoteIndex }
+        val rootNoteIndex = available.random()
+        previousRootNoteIndex = rootNoteIndex
         _uiState.value = QuizUiState(
             mode = mode,
             circleType = circleType,

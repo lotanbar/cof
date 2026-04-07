@@ -57,8 +57,14 @@ private fun StartScreenContent(
 ) {
     var bannerMessage by remember { mutableStateOf<String?>(null) }
 
-    fun showBanner(msg: String) { bannerMessage = msg }
+    LaunchedEffect(bannerMessage) {
+        if (bannerMessage != null) {
+            delay(2500)
+            bannerMessage = null
+        }
+    }
 
+    fun showBanner(msg: String) { bannerMessage = msg }
     fun showTypeToast()  = showBanner("Select Scales or Chords mode first")
     fun showStartToast() = showBanner(
         when {
@@ -68,15 +74,12 @@ private fun StartScreenContent(
     )
 
     CompositionLocalProvider(LocalRippleConfiguration provides null) {
-    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 32.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.weight(1f))
-
             SectionLabel("Mode")
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -105,18 +108,44 @@ private fun StartScreenContent(
                 dimmed = !uiState.scalesSelected,
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-            Box(modifier = Modifier.fillMaxWidth().height(64.dp)) {
+            // Validation message floats just above the Start button
+            AnimatedVisibility(
+                visible = bannerMessage != null,
+                enter = fadeIn(),
+                exit  = fadeOut(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .shadow(4.dp, RoundedCornerShape(12.dp))
+                        .background(Color(0xFF2A2A2A), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = bannerMessage ?: "",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxWidth().height(72.dp)) {
                 OutlinedButton(
                     onClick = onStartClicked,
                     enabled = uiState.isStartEnabled,
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(3.dp, if (uiState.isStartEnabled) Color(0xFFCCCCCC) else Color(0xFF333333)),
+                    border = BorderStroke(3.dp, if (uiState.isStartEnabled) MaterialTheme.colorScheme.onSurface else Color(0xFF333333)),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Black,
-                        contentColor = Color(0xFFCCCCCC),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         disabledContainerColor = Color(0xFF0D0D0D),
                         disabledContentColor = Color(0xFF444444),
                     ),
@@ -128,51 +157,7 @@ private fun StartScreenContent(
                 }
             }
         }
-
-        TopBanner(
-            message = bannerMessage,
-            onDismiss = { bannerMessage = null },
-        )
-    }
     } // CompositionLocalProvider
-}
-
-@Composable
-private fun TopBanner(message: String?, onDismiss: () -> Unit) {
-    val visible = message != null
-
-    LaunchedEffect(message) {
-        if (message != null) {
-            delay(2500)
-            onDismiss()
-        }
-    }
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(),
-        exit  = fadeOut(),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 12.dp)
-            .padding(horizontal = 40.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .shadow(6.dp, RoundedCornerShape(24.dp))
-                .background(Color(0xFF2A2A2A), RoundedCornerShape(24.dp))
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = message ?: "",
-                color = Color(0xFFCCCCCC),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
 }
 
 @Composable
@@ -199,18 +184,18 @@ private fun SelectionCard(
         else     -> Color.Black
     }
     val textColor = when {
-        selected -> Color(0xFFCCCCCC)
+        selected -> MaterialTheme.colorScheme.onSurface
         disabled -> Color(0xFF444444)
         dimmed   -> Color(0xFF555555)
-        else     -> Color(0xFFCCCCCC)
+        else     -> MaterialTheme.colorScheme.onSurface
     }
     val borderColor = when {
-        selected -> Color(0xFFCCCCCC)
+        selected -> Color(0xFFFFFFFF)
         disabled -> Color(0xFF333333)
         dimmed   -> Color(0xFF2A2A2A)
-        else     -> Color(0xFF888888)
+        else     -> Color(0xFF666666)
     }
-    val borderWidth = if (selected) 3.dp else 1.5.dp
+    val borderWidth = if (selected) 4.dp else 1.5.dp
 
     Surface(
         onClick = onClick,

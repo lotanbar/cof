@@ -15,9 +15,9 @@ data class StartUiState(
     val isStartEnabled: Boolean
         get() {
             if (!scalesSelected && !circleSelected) return false
-            if (circleSelected) return true
-            // Only Scales is selected — need at least one of Major/Minor
-            return majorSelected || minorSelected
+            // Scales always requires at least one of Major/Minor, regardless of Circle
+            if (scalesSelected && !majorSelected && !minorSelected) return false
+            return true
         }
 }
 

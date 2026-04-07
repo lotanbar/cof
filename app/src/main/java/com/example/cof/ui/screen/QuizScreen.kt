@@ -86,7 +86,7 @@ fun QuizScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color(0xFFCCCCCC),
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(30.dp),
                     )
                 }
@@ -96,7 +96,7 @@ fun QuizScreen(
                     textAlign = TextAlign.Center,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Normal,
-                    color = Color(0xFFCCCCCC),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 // Invisible spacer balances the back-button so label is centred
                 Spacer(modifier = Modifier.width(48.dp))
@@ -104,11 +104,11 @@ fun QuizScreen(
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── MIDDLE (50%) ──────────────────────────────────────────────
+            // ── MIDDLE (42.5%) ────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(50f),
+                    .weight(42.5f),
                 contentAlignment = Alignment.Center,
             ) {
                 if (uiState.mode == QuizMode.CIRCLE) {
@@ -124,14 +124,14 @@ fun QuizScreen(
                                 Icon(
                                     imageVector = Icons.Default.ArrowUpward,
                                     contentDescription = null,
-                                    tint = Color(0xFFCCCCCC),
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(88.dp),
                                 )
                                 Text(
                                     text = intervalLabel,
                                     fontSize = 100.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color(0xFFCCCCCC),
+                                    fontWeight = FontWeight.Light,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     style = NoFontPadding,
                                 )
                             }
@@ -139,8 +139,8 @@ fun QuizScreen(
                         Text(
                             text = CHROMATIC_NOTES[uiState.rootNoteIndex],
                             fontSize = 100.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = Color(0xFFCCCCCC),
+                            fontWeight = FontWeight.Light,
+                            color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,
                             style = NoFontPadding,
                         )
@@ -149,14 +149,14 @@ fun QuizScreen(
                                 Icon(
                                     imageVector = Icons.Default.ArrowDownward,
                                     contentDescription = null,
-                                    tint = Color(0xFFCCCCCC),
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(88.dp),
                                 )
                                 Text(
                                     text = intervalLabel,
                                     fontSize = 100.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color(0xFFCCCCCC),
+                                    fontWeight = FontWeight.Light,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     style = NoFontPadding,
                                 )
                             }
@@ -171,8 +171,8 @@ fun QuizScreen(
                         Text(
                             text = CHROMATIC_NOTES[uiState.rootNoteIndex],
                             fontSize = 100.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = Color(0xFFCCCCCC),
+                            fontWeight = FontWeight.Light,
+                            color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,
                             style = NoFontPadding,
                         )
@@ -183,8 +183,8 @@ fun QuizScreen(
                                 null            -> ""
                             },
                             fontSize = 42.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = Color(0xFFCCCCCC),
+                            fontWeight = FontWeight.Light,
+                            color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,
                             style = NoFontPadding,
                         )
@@ -194,19 +194,21 @@ fun QuizScreen(
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── NOTE BUTTONS (35%) ────────────────────────────────────────
-            // All 12 notes, ordered from one semitone above root up to root itself.
+            // ── NOTE BUTTONS (42.5%) ──────────────────────────────────────
+            // 4 rows of 3 notes each.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(35f)
+                    .weight(42.5f)
                     .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                val startNote = (uiState.rootNoteIndex + 1) % 12
-                val noteRows: List<List<Int>> = (0 until 12)
-                    .map { (startNote + it) % 12 }
-                    .chunked(3)
+                val noteRows: List<List<Int>> = listOf(
+                    listOf(0, 1, 2),
+                    listOf(3, 4, 5),
+                    listOf(6, 7, 8),
+                    listOf(9, 10, 11),
+                )
 
                 noteRows.forEach { rowIndices ->
                     Row(
@@ -263,7 +265,7 @@ fun QuizScreen(
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = "Show Answer",
-                        tint = if (uiState.showingAnswer) Color(0xFFFFD700) else Color(0xFFCCCCCC),
+                        tint = if (uiState.showingAnswer) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface,
                     )
                 }
 
@@ -277,10 +279,10 @@ fun QuizScreen(
                     enabled = submitEnabled,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(2.dp, if (submitEnabled) Color(0xFFCCCCCC) else Color(0xFF333333)),
+                    border = BorderStroke(2.dp, if (submitEnabled) MaterialTheme.colorScheme.onSurface else Color(0xFF333333)),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Black,
-                        contentColor = Color(0xFFCCCCCC),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         disabledContainerColor = Color(0xFF0A0A0A),
                         disabledContentColor = Color(0xFF444444),
                     ),
@@ -290,25 +292,19 @@ fun QuizScreen(
             }
         }
 
-        // Wrong-answer flash overlay (at root BoxScope level to avoid ColumnScope clash)
+        // Subtle wrong-answer indicator — small, centred, non-intrusive
         AnimatedVisibility(
             visible = uiState.showWrong,
             enter = fadeIn(),
             exit  = fadeOut(),
+            modifier = Modifier.align(Alignment.Center),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0x55FF0000)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "Wrong",
-                    fontSize = 52.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color(0xFFFF5555),
-                )
-            }
+            Text(
+                text = "✗  Wrong",
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFFFF3333),
+            )
         }
     }
     } // CompositionLocalProvider
@@ -329,11 +325,11 @@ private fun NoteButton(
     }
     val textColor   = when {
         isAnswer   -> Color(0xFFFFD700)
-        else       -> Color(0xFFCCCCCC)
+        else       -> MaterialTheme.colorScheme.onSurface
     }
     val borderColor = when {
         isAnswer   -> Color(0xFFFFD700)
-        selected   -> Color(0xFFCCCCCC)
+        selected   -> MaterialTheme.colorScheme.onSurface
         else       -> Color(0xFF1E1E1E)
     }
     val borderWidth = if (selected || isAnswer) 2.dp else 1.dp
@@ -359,8 +355,8 @@ private fun NoteButton(
                 fontWeight = FontWeight.Normal,
                 color = when {
                     isAnswer -> Color(0xFFFFD700)
-                    selected -> Color(0xFF888888)
-                    else     -> Color(0xFF888888)
+                    selected -> MaterialTheme.colorScheme.onSurface
+                    else     -> MaterialTheme.colorScheme.onSurface
                 },
                 modifier = Modifier
                     .align(Alignment.BottomStart)

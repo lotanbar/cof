@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -222,15 +224,22 @@ fun QuizScreen(
                             val isScales = uiState.mode == QuizMode.SCALES
                             val orderIndex = if (isScales) uiState.selectedNotes.indexOf(noteIndex) else -1
                             val answerIndex = if (uiState.showingAnswer) uiState.answerNoteIndices.indexOf(noteIndex) else -1
+                            val showAnswerNumbers = uiState.answerNoteIndices.size > 1
+                            val isRootInAnswer = uiState.showingAnswer && isScales && showAnswerNumbers &&
+                                    noteIndex == uiState.rootNoteIndex
+                            val bottomLabel = when {
+                                // Root tile shows "1  8" to convey both valid forms
+                                isRootInAnswer -> "1  8"
+                                answerIndex >= 0 && showAnswerNumbers -> (answerIndex + 2).toString()
+                                orderIndex >= 0 -> (orderIndex + 1).toString()
+                                else -> null
+                            }
                             NoteButton(
                                 label = note,
                                 selected = if (isScales) orderIndex >= 0 else uiState.selectedNoteIndex == noteIndex,
                                 isAnswer = answerIndex >= 0,
-                                orderNumber = when {
-                                    answerIndex >= 0 && uiState.answerNoteIndices.size > 1 -> answerIndex + 1
-                                    orderIndex >= 0 -> orderIndex + 1
-                                    else -> null
-                                },
+                                isAccidental = noteIndex in uiState.answerAccidentalNoteIndices,
+                                bottomLabel = bottomLabel,
                                 modifier = Modifier
                                     .weight(if (note.contains('/')) 1.5f else 1.0f)
                                     .fillMaxHeight(),
@@ -243,7 +252,7 @@ fun QuizScreen(
 
             HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
-            // ── SHOW ANSWER + SUBMIT (10%) ────────────────────────────────
+            // ── SHOW ANSWER + CLEAR + SUBMIT (10%) ───────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -252,24 +261,63 @@ fun QuizScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Show Answer icon button
-                IconButton(
+                // Hint button — note-tile border style (1dp dim normally, gold when active)
+                val hintEnabled = !uiState.showWrong
+                OutlinedButton(
                     onClick = { viewModel.showAnswer() },
-                    enabled = !uiState.showWrong,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(1f)
-                        .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp))
-                        .border(1.dp, Color(0xFF333333), RoundedCornerShape(8.dp)),
+                    enabled = hintEnabled,
+                    modifier = Modifier.fillMaxHeight().aspectRatio(1f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(
+                        if (uiState.showingAnswer) 2.dp else 1.dp,
+                        when {
+                            !hintEnabled -> Color(0xFF1E1E1E)
+                            uiState.showingAnswer -> Color(0xFFFFD700)
+                            else -> Color(0xFF1E1E1E)
+                        }
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Black,
+                        contentColor = if (uiState.showingAnswer) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface,
+                        disabledContainerColor = Color(0xFF0A0A0A),
+                        disabledContentColor = Color(0xFF444444),
+                    ),
+                    contentPadding = PaddingValues(0.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = "Show Answer",
-                        tint = if (uiState.showingAnswer) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp),
                     )
                 }
 
-                // Submit button — both modes
+                // Clear button — same note-tile border style
+                val clearEnabled = !uiState.showWrong && !uiState.showingAnswer && when (uiState.mode) {
+                    QuizMode.SCALES -> uiState.selectedNotes.isNotEmpty()
+                    QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
+                }
+                OutlinedButton(
+                    onClick = { viewModel.clearSelection() },
+                    enabled = clearEnabled,
+                    modifier = Modifier.fillMaxHeight().aspectRatio(1f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, if (clearEnabled) Color(0xFF1E1E1E) else Color(0xFF1E1E1E)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Black,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        disabledContainerColor = Color(0xFF0A0A0A),
+                        disabledContentColor = Color(0xFF444444),
+                    ),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear selection",
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+
+                // Submit button
                 val submitEnabled = !uiState.showWrong && !uiState.showingAnswer && when (uiState.mode) {
                     QuizMode.SCALES -> true
                     QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
@@ -315,17 +363,15 @@ private fun NoteButton(
     label: String,
     selected: Boolean,
     isAnswer: Boolean,
-    orderNumber: Int?,
+    isAccidental: Boolean = false,
+    bottomLabel: String? = null,  // shown bottom-left (e.g. "2", "1  8", or selection order)
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val bgColor     = when {
-        isAnswer   -> Color(0xFF3A2E00)
-        else       -> Color(0xFF000000)
-    }
-    val textColor   = when {
-        isAnswer   -> Color(0xFFFFD700)
-        else       -> MaterialTheme.colorScheme.onSurface
+    val bgColor = Color(0xFF000000)  // no fill for any hint tile
+    val contentColor = when {
+        isAnswer -> Color(0xFFFFD700)
+        else     -> MaterialTheme.colorScheme.onSurface
     }
     val borderColor = when {
         isAnswer   -> Color(0xFFFFD700)
@@ -344,23 +390,19 @@ private fun NoteButton(
             text = label,
             fontSize = 28.sp,
             fontWeight = FontWeight.Normal,
-            color = textColor,
+            color = contentColor,
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.Center),
         )
-        if (orderNumber != null) {
+        if (bottomLabel != null) {
             Text(
-                text = orderNumber.toString(),
-                fontSize = 13.sp,
+                text = bottomLabel,
+                fontSize = if (isAnswer) 16.sp else 13.sp,
                 fontWeight = FontWeight.Normal,
-                color = when {
-                    isAnswer -> Color(0xFFFFD700)
-                    selected -> MaterialTheme.colorScheme.onSurface
-                    else     -> MaterialTheme.colorScheme.onSurface
-                },
+                color = contentColor,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(3.dp),
+                    .padding(start = 6.dp, bottom = 3.dp),
             )
         }
     }

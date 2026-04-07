@@ -26,11 +26,12 @@ data class QuizUiState(
     val circleDirection: CircleDirection = CircleDirection.UP,
     val scaleType: ScaleType? = null,
     val rootNoteIndex: Int = 0,
-    val selectedNoteIndex: Int? = null,         // Circle mode: single selection
-    val selectedNotes: List<Int> = emptyList(),  // Scales mode: ordered sequence
+    val selectedNoteIndex: Int? = null,                       // Circle mode: single selection
+    val selectedNotes: List<Int> = emptyList(),               // Scales mode: ordered sequence
     val showWrong: Boolean = false,
     val showingAnswer: Boolean = false,
-    val answerNoteIndices: List<Int> = emptyList(), // populated when showingAnswer = true
+    val answerNoteIndices: List<Int> = emptyList(),           // populated when showingAnswer = true
+    val answerAccidentalNoteIndices: Set<Int> = emptySet(),   // subset of answerNoteIndices that are accidentals
 )
 
 class QuizViewModel : ViewModel() {
@@ -65,7 +66,7 @@ class QuizViewModel : ViewModel() {
 
         // Dismiss answer display on any tap
         if (_uiState.value.showingAnswer) {
-            _uiState.update { it.copy(showingAnswer = false, answerNoteIndices = emptyList()) }
+            _uiState.update { it.copy(showingAnswer = false, answerNoteIndices = emptyList(), answerAccidentalNoteIndices = emptySet()) }
         }
 
         val state = _uiState.value
@@ -85,19 +86,38 @@ class QuizViewModel : ViewModel() {
         val state = _uiState.value
         if (state.showWrong) return
         if (state.showingAnswer) {
-            _uiState.update { it.copy(showingAnswer = false, answerNoteIndices = emptyList()) }
+            _uiState.update { it.copy(showingAnswer = false, answerNoteIndices = emptyList(), answerAccidentalNoteIndices = emptySet()) }
             return
         }
-        val answer: List<Int> = when (state.mode) {
-            QuizMode.CIRCLE -> listOf(circleAnswer(state.rootNoteIndex, state.circleType, state.circleDirection))
-            QuizMode.SCALES -> correctScaleNotes(state.rootNoteIndex, state.scaleType ?: return)
+        when (state.mode) {
+            QuizMode.CIRCLE -> {
+                val answer = listOf(circleAnswer(state.rootNoteIndex, state.circleType, state.circleDirection))
+                _uiState.update { it.copy(
+                    showingAnswer = true,
+                    answerNoteIndices = answer,
+                    selectedNoteIndex = null,
+                    selectedNotes = emptyList(),
+                )}
+            }
+            QuizMode.SCALES -> {
+                val scaleType = state.scaleType ?: return
+                val scaleNotes = correctScaleNotes(state.rootNoteIndex, scaleType)
+                val accidentalMap = if (scaleType == ScaleType.MAJOR) MAJOR_ACCIDENTALS else MINOR_ACCIDENTALS
+                val accidentals = accidentalMap[state.rootNoteIndex] ?: emptySet()
+                _uiState.update { it.copy(
+                    showingAnswer = true,
+                    answerNoteIndices = scaleNotes,
+                    answerAccidentalNoteIndices = scaleNotes.filter { it in accidentals }.toSet(),
+                    selectedNoteIndex = null,
+                    selectedNotes = emptyList(),
+                )}
+            }
         }
-        _uiState.update { it.copy(
-            showingAnswer = true,
-            answerNoteIndices = answer,
-            selectedNoteIndex = null,
-            selectedNotes = emptyList(),
-        ) }
+    }
+
+    fun clearSelection() {
+        if (_uiState.value.showWrong) return
+        _uiState.update { it.copy(selectedNotes = emptyList(), selectedNoteIndex = null) }
     }
 
     fun submit() {
@@ -199,6 +219,42 @@ class QuizViewModel : ViewModel() {
     companion object {
         private val MAJOR_INTERVALS = listOf(0, 2, 4, 5, 7, 9, 11)
         private val MINOR_INTERVALS = listOf(0, 2, 3, 5, 7, 8, 10)
+
+        // For each root (0–11) the set of chromatic indices that are theoretically
+        // accidentals (sharped or flatted notes) in the major/natural-minor scale.
+        // Uses conventional enharmonic spellings (e.g. Db not C#, F# not Gb for root 6).
+        // Notably: F# major includes E# (= index 5, displayed as F) as an accidental.
+        private val MAJOR_ACCIDENTALS: Map<Int, Set<Int>> = mapOf(
+            0  to emptySet(),
+            1  to setOf(1, 3, 6, 8, 10),          // Db major
+            2  to setOf(1, 6),                     // D major
+            3  to setOf(3, 8, 10),                 // Eb major
+            4  to setOf(1, 3, 6, 8),               // E major
+            5  to setOf(10),                       // F major
+            6  to setOf(1, 3, 5, 6, 8, 10),        // F# major (E#=5 is accidental)
+            7  to setOf(6),                        // G major
+            8  to setOf(1, 3, 8, 10),              // Ab major
+            9  to setOf(1, 6, 8),                  // A major
+            10 to setOf(3, 10),                    // Bb major
+            11 to setOf(1, 3, 6, 8, 10),           // B major
+        )
+
+        // Natural minor (Aeolian) accidentals per root.
+        // E.g. D# minor includes E# (=5) and D#(3): {1,3,5,6,8,10}.
+        private val MINOR_ACCIDENTALS: Map<Int, Set<Int>> = mapOf(
+            0  to setOf(3, 8, 10),                 // C minor
+            1  to setOf(1, 3, 6, 8),               // C# minor
+            2  to setOf(10),                       // D minor
+            3  to setOf(1, 3, 5, 6, 8, 10),        // D# minor (E#=5 is accidental)
+            4  to setOf(6),                        // E minor
+            5  to setOf(1, 3, 8, 10),              // F minor
+            6  to setOf(1, 6, 8),                  // F# minor
+            7  to setOf(3, 10),                    // G minor
+            8  to setOf(1, 3, 6, 8, 10),           // G# minor
+            9  to emptySet(),                      // A minor
+            10 to setOf(1, 3, 6, 8, 10),           // Bb minor
+            11 to setOf(1, 6),                     // B minor
+        )
 
         fun circleAnswer(rootIndex: Int, type: CircleType, direction: CircleDirection): Int {
             val interval = if (type == CircleType.FIFTHS) 7 else 5

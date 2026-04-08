@@ -15,8 +15,9 @@ val CHROMATIC_NOTES = listOf(
     "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B",
 )
 
-enum class QuizMode { SCALES, CIRCLE }
+enum class QuizMode { SCALES, CIRCLE, CHORDS }
 enum class ScaleType { MAJOR, MINOR }
+enum class ChordType { MAJ_TRIAD, MIN_TRIAD, MAJ_7TH, MIN_7TH }
 enum class CircleType { FOURTHS, FIFTHS }
 enum class CircleDirection { UP, DOWN }
 
@@ -25,6 +26,7 @@ data class QuizUiState(
     val circleType: CircleType = CircleType.FIFTHS,
     val circleDirection: CircleDirection = CircleDirection.UP,
     val scaleType: ScaleType? = null,
+    val chordType: ChordType? = null,
     val rootNoteIndex: Int = 0,
     val selectedNoteIndex: Int? = null,                       // Circle mode: single selection
     val selectedNotes: List<Int> = emptyList(),               // Scales mode: ordered sequence
@@ -44,6 +46,11 @@ class QuizViewModel : ViewModel() {
     private var circleEnabled = true
     private var majorEnabled = false
     private var minorEnabled = false
+    private var chordsEnabled = false
+    private var chordMaj3Enabled = false
+    private var chordMin3Enabled = false
+    private var chordMaj7Enabled = false
+    private var chordMin7Enabled = false
     private var previousRootNoteIndex: Int? = null
 
     fun init(
@@ -51,6 +58,11 @@ class QuizViewModel : ViewModel() {
         circleEnabled: Boolean,
         majorEnabled: Boolean,
         minorEnabled: Boolean,
+        chordsEnabled: Boolean = false,
+        chordMaj3Enabled: Boolean = false,
+        chordMin3Enabled: Boolean = false,
+        chordMaj7Enabled: Boolean = false,
+        chordMin7Enabled: Boolean = false,
     ) {
         if (initialized) return
         initialized = true
@@ -58,6 +70,11 @@ class QuizViewModel : ViewModel() {
         this.circleEnabled = circleEnabled
         this.majorEnabled = majorEnabled
         this.minorEnabled = minorEnabled
+        this.chordsEnabled = chordsEnabled
+        this.chordMaj3Enabled = chordMaj3Enabled
+        this.chordMin3Enabled = chordMin3Enabled
+        this.chordMaj7Enabled = chordMaj7Enabled
+        this.chordMin7Enabled = chordMin7Enabled
         generateNextQuestion()
     }
 
@@ -72,12 +89,25 @@ class QuizViewModel : ViewModel() {
         val state = _uiState.value
         if (state.mode == QuizMode.CIRCLE) {
             _uiState.update { it.copy(selectedNoteIndex = noteIndex) }
-        } else {
+        } else if (state.mode == QuizMode.SCALES) {
             val current = state.selectedNotes
             if (noteIndex in current) {
                 _uiState.update { it.copy(selectedNotes = current - noteIndex) }
             } else {
                 _uiState.update { it.copy(selectedNotes = current + noteIndex) }
+            }
+        } else {
+            // CHORDS: last-note undo; root may appear twice (degree 1 and 8)
+            val current = state.selectedNotes
+            if (current.isNotEmpty() && current.last() == noteIndex) {
+                _uiState.update { it.copy(selectedNotes = current.dropLast(1)) }
+            } else {
+                val isRoot = noteIndex == state.rootNoteIndex
+                val rootCount = current.count { it == state.rootNoteIndex }
+                val alreadyInList = noteIndex in current
+                if (!alreadyInList || (isRoot && rootCount < 2)) {
+                    _uiState.update { it.copy(selectedNotes = current + noteIndex) }
+                }
             }
         }
     }
@@ -112,6 +142,19 @@ class QuizViewModel : ViewModel() {
                     selectedNotes = emptyList(),
                 )}
             }
+            QuizMode.CHORDS -> {
+                val chordType = state.chordType ?: return
+                val intervals = CHORD_INTERVALS[chordType]!!
+                val chordNotes = intervals.map { (state.rootNoteIndex + it) % 12 }
+                val accidentalSet = setOf(1, 3, 6, 8, 10)
+                _uiState.update { it.copy(
+                    showingAnswer = true,
+                    answerNoteIndices = chordNotes,
+                    answerAccidentalNoteIndices = chordNotes.filter { it in accidentalSet }.toSet(),
+                    selectedNoteIndex = null,
+                    selectedNotes = emptyList(),
+                )}
+            }
         }
     }
 
@@ -137,6 +180,14 @@ class QuizViewModel : ViewModel() {
             QuizMode.SCALES -> {
                 val scaleType = state.scaleType ?: return
                 if (isValidScaleAnswer(state.rootNoteIndex, scaleType, state.selectedNotes)) {
+                    generateNextQuestion()
+                } else {
+                    showWrong()
+                }
+            }
+            QuizMode.CHORDS -> {
+                val chordType = state.chordType ?: return
+                if (isValidChordAnswer(state.rootNoteIndex, chordType, state.selectedNotes)) {
                     generateNextQuestion()
                 } else {
                     showWrong()
@@ -186,6 +237,7 @@ class QuizViewModel : ViewModel() {
         val circleType      = if (mode == QuizMode.CIRCLE) pickCircleType()      else CircleType.FIFTHS
         val circleDirection = if (mode == QuizMode.CIRCLE) pickCircleDirection() else CircleDirection.UP
         val scaleType       = if (mode == QuizMode.SCALES) pickScaleType()       else null
+        val chordType       = if (mode == QuizMode.CHORDS) pickChordType()       else null
         val available = (0 until 12).filter { it != previousRootNoteIndex }
         val rootNoteIndex = available.random()
         previousRootNoteIndex = rootNoteIndex
@@ -194,14 +246,18 @@ class QuizViewModel : ViewModel() {
             circleType = circleType,
             circleDirection = circleDirection,
             scaleType = scaleType,
+            chordType = chordType,
             rootNoteIndex = rootNoteIndex,
         )
     }
 
-    private fun pickMode(): QuizMode = when {
-        scalesEnabled && circleEnabled -> if (Random.nextBoolean()) QuizMode.SCALES else QuizMode.CIRCLE
-        scalesEnabled -> QuizMode.SCALES
-        else -> QuizMode.CIRCLE
+    private fun pickMode(): QuizMode {
+        val modes = mutableListOf<QuizMode>().apply {
+            if (scalesEnabled) add(QuizMode.SCALES)
+            if (circleEnabled) add(QuizMode.CIRCLE)
+            if (chordsEnabled) add(QuizMode.CHORDS)
+        }
+        return modes.random()
     }
 
     private fun pickCircleType(): CircleType =
@@ -216,9 +272,58 @@ class QuizViewModel : ViewModel() {
         else -> ScaleType.MINOR
     }
 
+    private fun pickChordType(): ChordType {
+        val available = mutableListOf<ChordType>().apply {
+            if (chordMaj3Enabled) add(ChordType.MAJ_TRIAD)
+            if (chordMin3Enabled) add(ChordType.MIN_TRIAD)
+            if (chordMaj7Enabled) add(ChordType.MAJ_7TH)
+            if (chordMin7Enabled) add(ChordType.MIN_7TH)
+        }
+        return available.random()
+    }
+
+    private fun isValidChordAnswer(rootIndex: Int, type: ChordType, selected: List<Int>): Boolean {
+        val intervals = CHORD_INTERVALS[type]!!
+        val n = intervals.map { (rootIndex + it) % 12 }
+        val d1 = n[0]; val d3 = n[1]; val d5 = n[2]
+        return if (type == ChordType.MAJ_TRIAD || type == ChordType.MIN_TRIAD) {
+            selected == listOf(d1, d3, d5) ||
+            selected == listOf(d1, d3, d5, d1) ||
+            selected == listOf(d3, d5, d1)
+        } else {
+            val d7 = n[3]
+            selected == listOf(d1, d3, d5, d7) ||
+            selected == listOf(d1, d3, d5, d7, d1) ||
+            selected == listOf(d3, d5, d7, d1)
+        }
+    }
+
     companion object {
         private val MAJOR_INTERVALS = listOf(0, 2, 4, 5, 7, 9, 11)
         private val MINOR_INTERVALS = listOf(0, 2, 3, 5, 7, 8, 10)
+
+        val CHORD_INTERVALS = mapOf(
+            ChordType.MAJ_TRIAD to listOf(0, 4, 7),
+            ChordType.MIN_TRIAD to listOf(0, 3, 7),
+            ChordType.MAJ_7TH   to listOf(0, 4, 7, 11),
+            ChordType.MIN_7TH   to listOf(0, 3, 7, 10),
+        )
+
+        private val CHORD_ROOT_NAMES = listOf(
+            "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
+        )
+
+        // Returns (rootName, typeSuffix) for display in the middle section.
+        fun chordDisplayLabel(rootIndex: Int, chordType: ChordType): Pair<String, String> {
+            val root = CHORD_ROOT_NAMES[rootIndex]
+            val suffix = when (chordType) {
+                ChordType.MAJ_TRIAD -> "major"
+                ChordType.MIN_TRIAD -> "minor"
+                ChordType.MAJ_7TH   -> "maj7"
+                ChordType.MIN_7TH   -> "min7"
+            }
+            return Pair(root, suffix)
+        }
 
         // For each root (0–11) the set of chromatic indices that are theoretically
         // accidentals (sharped or flatted notes) in the major/natural-minor scale.

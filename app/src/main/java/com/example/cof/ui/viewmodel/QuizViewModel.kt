@@ -317,8 +317,8 @@ class QuizViewModel : ViewModel() {
         fun chordDisplayLabel(rootIndex: Int, chordType: ChordType): Pair<String, String> {
             val root = CHORD_ROOT_NAMES[rootIndex]
             val suffix = when (chordType) {
-                ChordType.MAJ_TRIAD -> "major"
-                ChordType.MIN_TRIAD -> "minor"
+                ChordType.MAJ_TRIAD -> "maj"
+                ChordType.MIN_TRIAD -> "min"
                 ChordType.MAJ_7TH   -> "maj7"
                 ChordType.MIN_7TH   -> "min7"
             }

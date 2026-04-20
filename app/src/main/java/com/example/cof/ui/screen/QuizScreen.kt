@@ -73,13 +73,7 @@ fun QuizScreen(
     val topLabel = when (uiState.mode) {
         QuizMode.CIRCLE -> "Circle"
         QuizMode.SCALES -> "Scales"
-        QuizMode.CHORDS -> when (uiState.chordType) {
-            ChordType.MAJ_TRIAD -> "Chords · Maj"
-            ChordType.MIN_TRIAD -> "Chords · Min"
-            ChordType.MAJ_7TH   -> "Chords · Maj7"
-            ChordType.MIN_7TH   -> "Chords · Min7"
-            null                -> "Chords"
-        }
+        QuizMode.CHORDS -> "Chords"
     }
 
     CompositionLocalProvider(LocalRippleConfiguration provides null) {
@@ -218,14 +212,28 @@ fun QuizScreen(
                     // CHORDS
                     val chordType = uiState.chordType
                     if (chordType != null) {
-                        val (root, suffix) = QuizViewModel.chordDisplayLabel(uiState.rootNoteIndex, chordType)
-                        Box(
+                        val suffix = when (chordType) {
+                            ChordType.MAJ_TRIAD -> "major"
+                            ChordType.MIN_TRIAD -> "minor"
+                            ChordType.MAJ_7TH   -> "major 7"
+                            ChordType.MIN_7TH   -> "minor 7"
+                        }
+                        Column(
                             modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
                         ) {
                             Text(
-                                text = "$root$suffix",
-                                fontSize = 72.sp,
+                                text = CHROMATIC_NOTES[uiState.rootNoteIndex],
+                                fontSize = 100.sp,
+                                fontWeight = FontWeight.Light,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                                style = NoFontPadding,
+                            )
+                            Text(
+                                text = suffix,
+                                fontSize = 42.sp,
                                 fontWeight = FontWeight.Light,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center,

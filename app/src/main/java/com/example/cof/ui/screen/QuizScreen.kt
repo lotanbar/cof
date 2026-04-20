@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Clear
@@ -55,6 +58,10 @@ fun QuizScreen(
     viewModel: QuizViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    var soundEnabled by rememberSaveable { mutableStateOf(false) }
+    val soundScope = rememberCoroutineScope()
+    val soundPlayer = remember { PianoSoundPlayer(soundScope) }
 
     LaunchedEffect(Unit) {
         viewModel.init(
@@ -307,7 +314,10 @@ fun QuizScreen(
                                 modifier = Modifier
                                     .weight(if (note.contains('/')) 1.5f else 1.0f)
                                     .fillMaxHeight(),
-                                onClick = { viewModel.selectNote(noteIndex) },
+                                onClick = {
+                                    viewModel.selectNote(noteIndex)
+                                    if (soundEnabled) soundPlayer.play(noteIndex)
+                                },
                             )
                         }
                     }
@@ -325,6 +335,28 @@ fun QuizScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Sound toggle button
+                OutlinedButton(
+                    onClick = { soundEnabled = !soundEnabled },
+                    modifier = Modifier.fillMaxHeight().aspectRatio(1f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(
+                        if (soundEnabled) 2.dp else 1.dp,
+                        if (soundEnabled) MaterialTheme.colorScheme.onSurface else Color(0xFF1E1E1E),
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Black,
+                        contentColor = if (soundEnabled) MaterialTheme.colorScheme.onSurface else Color(0xFF666666),
+                    ),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Icon(
+                        imageVector = if (soundEnabled) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
+                        contentDescription = if (soundEnabled) "Sound on" else "Sound off",
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+
                 // Hint button — note-tile border style (1dp dim normally, gold when active)
                 val hintEnabled = !uiState.showWrong
                 OutlinedButton(

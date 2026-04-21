@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,14 +54,19 @@ fun QuizScreen(
     chordMaj7Selected: Boolean = false,
     chordMin7Selected: Boolean = false,
     allowedNoteIndices: Set<Int> = (0..11).toSet(),
+    soundEnabled: Boolean = false,
+    onSoundToggle: () -> Unit = {},
     onBack: () -> Unit,
     viewModel: QuizViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    var soundEnabled by rememberSaveable { mutableStateOf(false) }
     val soundScope = rememberCoroutineScope()
     val soundPlayer = remember { PianoSoundPlayer(soundScope) }
+
+    DisposableEffect(soundPlayer) {
+        onDispose { soundPlayer.release() }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.init(
@@ -339,7 +343,7 @@ fun QuizScreen(
             ) {
                 // Sound toggle button
                 OutlinedButton(
-                    onClick = { soundEnabled = !soundEnabled },
+                    onClick = onSoundToggle,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f),
                     shape = RoundedCornerShape(6.dp),
                     border = BorderStroke(

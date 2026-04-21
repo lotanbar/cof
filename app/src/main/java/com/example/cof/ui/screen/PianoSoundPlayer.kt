@@ -12,38 +12,83 @@ import kotlin.math.sin
 
 /**
  * Synthesizes piano-like tones using additive synthesis (fundamental + harmonics with
- * individual exponential decay envelopes). Each [play] call is non-blocking and
- * dispatched to [Dispatchers.IO].
+ * individual exponential decay envelopes).
  *
- * The [scope] is expected to be a composition-scoped coroutine scope so that in-flight
- * notes are cancelled automatically when the composable leaves the composition.
+ * All 12 [AudioTrack]s are pre-built once in the background at construction time:
+ * samples are synthesized, written into MODE_STATIC tracks, and kept alive.
+ * Each [play] call then only does stop → reloadStaticData → play, which is
+ * effectively instantaneous (no allocation, no data copy on the hot path).
+ *
+ * Call [release] (e.g. from a DisposableEffect) when the player is no longer needed.
+ *
+ * The [scope] is used only for the background prewarm; it may be cancelled after
+ * prewarm completes without affecting playback.
  */
 class PianoSoundPlayer(private val scope: CoroutineScope) {
 
-    fun play(noteIndex: Int) {
-        val freq = FREQUENCIES[noteIndex.coerceIn(0, 11)]
+    private val tracks = arrayOfNulls<AudioTrack>(12)
+
+    // Volatile flag for safe publication: once true, all tracks[] entries are visible.
+    @Volatile private var ready = false
+    @Volatile private var released = false
+
+    init {
         scope.launch(Dispatchers.IO) {
-            synthesizeAndPlay(freq)
+            for (i in 0..11) {
+                tracks[i] = buildTrack(synthesize(FREQUENCIES[i]))
+            }
+            ready = true
         }
     }
 
-    private fun synthesizeAndPlay(freq: Float) {
-        val numSamples = (SAMPLE_RATE * DURATION_SECONDS).toInt()
-        val samples = ShortArray(numSamples)
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-            var sum = 0.0
-            for (h in HARMONICS) {
-                sum += h.amplitude * exp(-h.decay * t) * sin(2.0 * PI * freq * h.multiple * t)
+    fun play(noteIndex: Int) {
+        if (released) return
+        val idx = noteIndex.coerceIn(0, 11)
+        scope.launch(Dispatchers.IO) {
+            if (released) return@launch
+            val track = if (ready) tracks[idx] else null
+            if (track != null) {
+                // Hot path: just rewind and play — no allocation, no data copy.
+                try {
+                    if (track.playState == AudioTrack.PLAYSTATE_PLAYING) track.stop()
+                    if (track.reloadStaticData() == AudioTrack.SUCCESS) {
+                        track.play()
+                    } else {
+                        // Rare: reload failed; rebuild this track in place.
+                        track.release()
+                        tracks[idx] = buildTrack(synthesize(FREQUENCIES[idx]))
+                        tracks[idx]?.play()
+                    }
+                } catch (_: Exception) {}
+            } else {
+                // Cold path: prewarm not finished yet; synthesize + play a one-shot track.
+                try {
+                    val t = buildTrack(synthesize(FREQUENCIES[idx]))
+                    t.play()
+                    Thread.sleep((DURATION_SECONDS * 1000 + 50).toLong())
+                    t.stop()
+                    t.release()
+                } catch (_: Exception) {}
             }
-            // Normalize by total peak amplitude and scale to 16-bit range
-            samples[i] = (sum / TOTAL_AMPLITUDE * Short.MAX_VALUE * 0.85)
-                .toInt()
-                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                .toShort()
         }
+    }
 
+    /** Stop all playing notes and release audio resources. Safe to call from any thread. */
+    fun release() {
+        released = true
+        scope.launch(Dispatchers.IO) {
+            for (idx in 0..11) {
+                try {
+                    val t = tracks[idx] ?: continue
+                    tracks[idx] = null
+                    if (t.playState == AudioTrack.PLAYSTATE_PLAYING) t.stop()
+                    t.release()
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    private fun buildTrack(samples: ShortArray): AudioTrack {
         val track = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -58,15 +103,28 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                     .build()
             )
-            .setBufferSizeInBytes(numSamples * 2)
+            .setBufferSizeInBytes(samples.size * 2)
             .setTransferMode(AudioTrack.MODE_STATIC)
             .build()
+        track.write(samples, 0, samples.size)
+        return track
+    }
 
-        track.write(samples, 0, numSamples)
-        track.play()
-        Thread.sleep((DURATION_SECONDS * 1000 + 50).toLong())
-        track.stop()
-        track.release()
+    private fun synthesize(freq: Float): ShortArray {
+        val numSamples = (SAMPLE_RATE * DURATION_SECONDS).toInt()
+        val samples = ShortArray(numSamples)
+        for (i in 0 until numSamples) {
+            val t = i.toDouble() / SAMPLE_RATE
+            var sum = 0.0
+            for (h in HARMONICS) {
+                sum += h.amplitude * exp(-h.decay * t) * sin(2.0 * PI * freq * h.multiple * t)
+            }
+            samples[i] = (sum / TOTAL_AMPLITUDE * Short.MAX_VALUE * 0.85)
+                .toInt()
+                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                .toShort()
+        }
+        return samples
     }
 
     private data class Harmonic(val multiple: Float, val amplitude: Float, val decay: Float)
@@ -75,14 +133,12 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
         private const val SAMPLE_RATE = 44100
         private const val DURATION_SECONDS = 0.8f
 
-        // C4 through B4 frequencies
         private val FREQUENCIES = floatArrayOf(
             261.63f, 277.18f, 293.66f, 311.13f,
             329.63f, 349.23f, 369.99f, 392.00f,
             415.30f, 440.00f, 466.16f, 493.88f,
         )
 
-        // Fundamental + 3 overtones; higher harmonics decay faster to mimic piano string behaviour
         private val HARMONICS = listOf(
             Harmonic(1f, 1.00f, 3.0f),
             Harmonic(2f, 0.50f, 5.0f),

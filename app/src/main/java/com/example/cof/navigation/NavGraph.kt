@@ -64,6 +64,7 @@ fun CofNavGraph() {
                 navArgument("notesMask") { type = NavType.IntType; defaultValue = 0xFFF },
             ),
         ) { backStackEntry ->
+            val uiState by startViewModel.uiState.collectAsState()
             val scales    = backStackEntry.arguments?.getBoolean("scales")    ?: false
             val circle    = backStackEntry.arguments?.getBoolean("circle")    ?: false
             val major     = backStackEntry.arguments?.getBoolean("major")     ?: false
@@ -87,6 +88,8 @@ fun CofNavGraph() {
                 chordMaj7Selected = cMaj7,
                 chordMin7Selected = cMin7,
                 allowedNoteIndices = allowedNotes,
+                soundEnabled = uiState.soundEnabled,
+                onSoundToggle = startViewModel::onSoundToggle,
                 onBack = { navController.popBackStack() },
             )
         }

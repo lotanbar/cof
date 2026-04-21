@@ -96,15 +96,14 @@ fun NoteSelectionScreen(
                     ) {
                         rowIndices.forEach { noteIndex ->
                             val note = CHROMATIC_NOTES[noteIndex]
-                            val isSelected = noteIndex in selected
                             SelectableNoteButton(
                                 label = note,
-                                selected = isSelected,
+                                selected = noteIndex in selected,
                                 modifier = Modifier
                                     .weight(if (note.contains('/')) 1.5f else 1.0f)
                                     .fillMaxHeight(),
                                 onClick = {
-                                    selected = if (isSelected) selected - noteIndex else selected + noteIndex
+                                    selected = if (noteIndex in selected) selected - noteIndex else selected + noteIndex
                                 },
                             )
                         }

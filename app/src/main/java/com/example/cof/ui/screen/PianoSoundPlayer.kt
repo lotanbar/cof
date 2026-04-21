@@ -112,6 +112,8 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
 
     private fun synthesize(freq: Float): ShortArray {
         val numSamples = (SAMPLE_RATE * DURATION_SECONDS).toInt()
+        val fadeSamples = (SAMPLE_RATE * FADE_OUT_SECONDS).toInt()
+        val fadeStart = numSamples - fadeSamples
         val samples = ShortArray(numSamples)
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
@@ -119,7 +121,12 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
             for (h in HARMONICS) {
                 sum += h.amplitude * exp(-h.decay * t) * sin(2.0 * PI * freq * h.multiple * t)
             }
-            samples[i] = (sum / TOTAL_AMPLITUDE * Short.MAX_VALUE * 0.85)
+            val fadeGain = if (i >= fadeStart) {
+                1.0 - (i - fadeStart).toDouble() / fadeSamples
+            } else {
+                1.0
+            }
+            samples[i] = (sum / TOTAL_AMPLITUDE * Short.MAX_VALUE * 0.85 * fadeGain)
                 .toInt()
                 .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
                 .toShort()
@@ -131,7 +138,8 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
 
     companion object {
         private const val SAMPLE_RATE = 44100
-        private const val DURATION_SECONDS = 0.8f
+        private const val DURATION_SECONDS = 0.6f
+        private const val FADE_OUT_SECONDS = 0.05f
 
         private val FREQUENCIES = floatArrayOf(
             261.63f, 277.18f, 293.66f, 311.13f,

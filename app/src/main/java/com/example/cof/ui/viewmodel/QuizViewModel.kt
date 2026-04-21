@@ -100,17 +100,12 @@ class QuizViewModel : ViewModel() {
                 _uiState.update { it.copy(selectedNotes = current + noteIndex) }
             }
         } else {
-            // CHORDS: last-note undo; root may appear twice (degree 1 and 8)
+            // CHORDS: any selected note can be freely deselected
             val current = state.selectedNotes
-            if (current.isNotEmpty() && current.last() == noteIndex) {
-                _uiState.update { it.copy(selectedNotes = current.dropLast(1)) }
+            if (noteIndex in current) {
+                _uiState.update { it.copy(selectedNotes = current - noteIndex) }
             } else {
-                val isRoot = noteIndex == state.rootNoteIndex
-                val rootCount = current.count { it == state.rootNoteIndex }
-                val alreadyInList = noteIndex in current
-                if (!alreadyInList || (isRoot && rootCount < 2)) {
-                    _uiState.update { it.copy(selectedNotes = current + noteIndex) }
-                }
+                _uiState.update { it.copy(selectedNotes = current + noteIndex) }
             }
         }
     }
@@ -292,12 +287,10 @@ class QuizViewModel : ViewModel() {
         val d1 = n[0]; val d3 = n[1]; val d5 = n[2]
         return if (type == ChordType.MAJ_TRIAD || type == ChordType.MIN_TRIAD) {
             selected == listOf(d1, d3, d5) ||
-            selected == listOf(d1, d3, d5, d1) ||
             selected == listOf(d3, d5, d1)
         } else {
             val d7 = n[3]
             selected == listOf(d1, d3, d5, d7) ||
-            selected == listOf(d1, d3, d5, d7, d1) ||
             selected == listOf(d3, d5, d7, d1)
         }
     }

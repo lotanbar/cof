@@ -36,7 +36,9 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
     init {
         scope.launch(Dispatchers.IO) {
             for (i in 0..11) {
+                if (released) break
                 tracks[i]      = buildTrack(synthesize(FREQUENCIES[i]))
+                if (released) break
                 tracks[i + 12] = buildTrack(synthesize(FREQUENCIES[i] * 2f))
             }
             ready = true
@@ -78,18 +80,16 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
         }
     }
 
-    /** Stop all playing notes and release audio resources. Safe to call from any thread. */
+    /** Stop all playing notes and release audio resources. Safe to call from the main thread. */
     fun release() {
         released = true
-        scope.launch(Dispatchers.IO) {
-            for (idx in 0..23) {
-                try {
-                    val t = tracks[idx] ?: continue
-                    tracks[idx] = null
-                    if (t.playState == AudioTrack.PLAYSTATE_PLAYING) t.stop()
-                    t.release()
-                } catch (_: Exception) {}
-            }
+        for (idx in 0..23) {
+            try {
+                val t = tracks[idx] ?: continue
+                tracks[idx] = null
+                if (t.playState == AudioTrack.PLAYSTATE_PLAYING) t.stop()
+                t.release()
+            } catch (_: Exception) {}
         }
     }
 

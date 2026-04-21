@@ -297,9 +297,9 @@ class QuizViewModel : ViewModel() {
             val root = CHORD_ROOT_NAMES[rootIndex]
             val suffix = when (chordType) {
                 ChordType.MAJ_TRIAD -> "maj"
-                ChordType.MIN_TRIAD -> "min"
+                ChordType.MIN_TRIAD -> "m"
                 ChordType.MAJ_7TH   -> "maj7"
-                ChordType.MIN_7TH   -> "min7"
+                ChordType.MIN_7TH   -> "m7"
             }
             return Pair(root, suffix)
         }

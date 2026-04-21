@@ -20,18 +20,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cof.ui.viewmodel.CHROMATIC_NOTES
-import com.example.cof.ui.viewmodel.ChordType
 import com.example.cof.ui.viewmodel.CircleDirection
 import com.example.cof.ui.viewmodel.CircleType
 import com.example.cof.ui.viewmodel.QuizMode
@@ -83,12 +80,6 @@ fun QuizScreen(
         )
     }
 
-    val topLabel = when (uiState.mode) {
-        QuizMode.CIRCLE -> "Circle"
-        QuizMode.SCALES -> "Scales"
-        QuizMode.CHORDS -> "Chords"
-    }
-
     CompositionLocalProvider(LocalRippleConfiguration provides null) {
     Box(
         modifier = Modifier
@@ -100,41 +91,6 @@ fun QuizScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.systemBars),
         ) {
-
-            // ── TOP BAR (5%) ──────────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(5f)
-                    .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clickable(onClick = onBack),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(30.dp),
-                    )
-                }
-                Text(
-                    text = topLabel,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                // Invisible spacer balances the back-button so label is centred
-                Spacer(modifier = Modifier.width(48.dp))
-            }
-
-            HorizontalDivider(color = Color(0xFF333333), thickness = 1.dp)
 
             // ── MIDDLE (42.5%) ────────────────────────────────────────────
             Box(
@@ -222,15 +178,11 @@ fun QuizScreen(
                         )
                     }
                 } else {
-                    // CHORDS
+                    // CHORDS — identical layout to scales
                     val chordType = uiState.chordType
                     if (chordType != null) {
-                        val suffix = when (chordType) {
-                            ChordType.MAJ_TRIAD -> "major"
-                            ChordType.MIN_TRIAD -> "minor"
-                            ChordType.MAJ_7TH   -> "major 7"
-                            ChordType.MIN_7TH   -> "minor 7"
-                        }
+                        val (_, chordSuffix) = QuizViewModel.chordDisplayLabel(uiState.rootNoteIndex, chordType)
+                        val suffixLabel = chordSuffix.replace("7", " 7")
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -245,7 +197,7 @@ fun QuizScreen(
                                 style = NoFontPadding,
                             )
                             Text(
-                                text = suffix,
+                                text = suffixLabel,
                                 fontSize = 42.sp,
                                 fontWeight = FontWeight.Light,
                                 color = MaterialTheme.colorScheme.onSurface,

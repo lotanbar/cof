@@ -16,6 +16,7 @@ data class StartUiState(
     val chordMin3Selected: Boolean = false,
     val chordMaj7Selected: Boolean = false,
     val chordMin7Selected: Boolean = false,
+    val selectedNoteIndices: Set<Int> = (0..11).toSet(),
 ) {
     val anyChordTypeSelected get() =
         chordMaj3Selected || chordMin3Selected || chordMaj7Selected || chordMin7Selected
@@ -68,5 +69,9 @@ class StartViewModel : ViewModel() {
 
     fun onChordMin7Toggle(checked: Boolean) {
         _uiState.update { it.copy(chordMin7Selected = checked) }
+    }
+
+    fun onNotesSelected(notes: Set<Int>) {
+        _uiState.update { it.copy(selectedNoteIndices = notes) }
     }
 }

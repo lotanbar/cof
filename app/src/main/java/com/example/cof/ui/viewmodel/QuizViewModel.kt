@@ -51,6 +51,7 @@ class QuizViewModel : ViewModel() {
     private var chordMin3Enabled = false
     private var chordMaj7Enabled = false
     private var chordMin7Enabled = false
+    private var allowedNoteIndices: Set<Int> = (0..11).toSet()
     private var previousRootNoteIndex: Int? = null
 
     fun init(
@@ -63,6 +64,7 @@ class QuizViewModel : ViewModel() {
         chordMin3Enabled: Boolean = false,
         chordMaj7Enabled: Boolean = false,
         chordMin7Enabled: Boolean = false,
+        allowedNoteIndices: Set<Int> = (0..11).toSet(),
     ) {
         if (initialized) return
         initialized = true
@@ -75,6 +77,7 @@ class QuizViewModel : ViewModel() {
         this.chordMin3Enabled = chordMin3Enabled
         this.chordMaj7Enabled = chordMaj7Enabled
         this.chordMin7Enabled = chordMin7Enabled
+        this.allowedNoteIndices = allowedNoteIndices.ifEmpty { (0..11).toSet() }
         generateNextQuestion()
     }
 
@@ -238,8 +241,9 @@ class QuizViewModel : ViewModel() {
         val circleDirection = if (mode == QuizMode.CIRCLE) pickCircleDirection() else CircleDirection.UP
         val scaleType       = if (mode == QuizMode.SCALES) pickScaleType()       else null
         val chordType       = if (mode == QuizMode.CHORDS) pickChordType()       else null
-        val available = (0 until 12).filter { it != previousRootNoteIndex }
-        val rootNoteIndex = available.random()
+        val available = allowedNoteIndices.filter { it != previousRootNoteIndex }
+        val pool = available.ifEmpty { allowedNoteIndices.toList() }
+        val rootNoteIndex = pool.random()
         previousRootNoteIndex = rootNoteIndex
         _uiState.value = QuizUiState(
             mode = mode,

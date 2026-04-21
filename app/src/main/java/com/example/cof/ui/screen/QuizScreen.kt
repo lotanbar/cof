@@ -54,6 +54,7 @@ fun QuizScreen(
     chordMin3Selected: Boolean = false,
     chordMaj7Selected: Boolean = false,
     chordMin7Selected: Boolean = false,
+    allowedNoteIndices: Set<Int> = (0..11).toSet(),
     onBack: () -> Unit,
     viewModel: QuizViewModel = viewModel(),
 ) {
@@ -74,6 +75,7 @@ fun QuizScreen(
             chordMin3Enabled = chordMin3Selected,
             chordMaj7Enabled = chordMaj7Selected,
             chordMin7Enabled = chordMin7Selected,
+            allowedNoteIndices = allowedNoteIndices,
         )
     }
 
@@ -331,7 +333,7 @@ fun QuizScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(10f)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

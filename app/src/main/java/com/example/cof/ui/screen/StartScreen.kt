@@ -35,6 +35,7 @@ fun StartScreen(
         chordMaj7: Boolean,
         chordMin7: Boolean,
     ) -> Unit,
+    onSelectNotesClicked: () -> Unit,
     viewModel: StartViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -50,6 +51,7 @@ fun StartScreen(
         onChordMin3Toggle = viewModel::onChordMin3Toggle,
         onChordMaj7Toggle = viewModel::onChordMaj7Toggle,
         onChordMin7Toggle = viewModel::onChordMin7Toggle,
+        onSelectNotesClicked = onSelectNotesClicked,
         onStartClicked = {
             onStartClicked(
                 uiState.scalesSelected,
@@ -79,6 +81,7 @@ private fun StartScreenContent(
     onChordMin3Toggle: (Boolean) -> Unit,
     onChordMaj7Toggle: (Boolean) -> Unit,
     onChordMin7Toggle: (Boolean) -> Unit,
+    onSelectNotesClicked: () -> Unit,
     onStartClicked: () -> Unit,
 ) {
     var bannerMessage by remember { mutableStateOf<String?>(null) }
@@ -164,7 +167,7 @@ private fun StartScreenContent(
                 }
             }
 
-            // Validation banner floats just above the Start button
+            // Validation banner floats just above the Select Notes + Start buttons
             AnimatedVisibility(
                 visible = bannerMessage != null,
                 enter = fadeIn(),
@@ -189,6 +192,36 @@ private fun StartScreenContent(
                     )
                 }
             }
+
+            // Select Notes button + summary
+            OutlinedButton(
+                onClick = onSelectNotesClicked,
+                modifier = Modifier.fillMaxWidth().height(64.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFF666666)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.Black,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Selected Notes:",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = formatSelectedNotes(uiState.selectedNoteIndices),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFFAAAAAA),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             Box(modifier = Modifier.fillMaxWidth().height(72.dp)) {
                 OutlinedButton(
@@ -263,5 +296,27 @@ private fun SelectionCard(
         Box(contentAlignment = Alignment.Center) {
             Text(text = label, fontSize = 28.sp, fontWeight = FontWeight.Normal, color = textColor)
         }
+    }
+}
+
+private fun formatSelectedNotes(selected: Set<Int>): String {
+    if (selected.size == 12) return "All notes"
+    if (selected.isEmpty()) return "No notes"
+    val noteNames = listOf("C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B")
+    val sorted = selected.sorted()
+    val groups = mutableListOf<List<Int>>()
+    var current = mutableListOf(sorted[0])
+    for (i in 1 until sorted.size) {
+        if (sorted[i] == sorted[i - 1] + 1) {
+            current.add(sorted[i])
+        } else {
+            groups.add(current.toList())
+            current = mutableListOf(sorted[i])
+        }
+    }
+    groups.add(current.toList())
+    return groups.joinToString(", ") { group ->
+        if (group.size == 1) noteNames[group[0]]
+        else "${noteNames[group.first()]}-${noteNames[group.last()]}"
     }
 }

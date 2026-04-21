@@ -301,7 +301,12 @@ fun QuizScreen(
                                     .fillMaxHeight(),
                                 onClick = {
                                     viewModel.selectNote(noteIndex)
-                                    if (soundEnabled) soundPlayer.play(noteIndex)
+                                    if (soundEnabled) {
+                                        val newState = viewModel.uiState.value
+                                        val octaveUp = (newState.mode == QuizMode.SCALES || newState.mode == QuizMode.CHORDS) &&
+                                            newState.selectedNotes.firstOrNull()?.let { noteIndex < it } == true
+                                        soundPlayer.play(noteIndex, octaveUp)
+                                    }
                                 },
                             )
                         }

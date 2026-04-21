@@ -26,7 +26,8 @@ import kotlin.math.sin
  */
 class PianoSoundPlayer(private val scope: CoroutineScope) {
 
-    private val tracks = arrayOfNulls<AudioTrack>(12)
+    // Indices 0–11: normal octave. Indices 12–23: one octave up (frequencies × 2).
+    private val tracks = arrayOfNulls<AudioTrack>(24)
 
     // Volatile flag for safe publication: once true, all tracks[] entries are visible.
     @Volatile private var ready = false
@@ -35,15 +36,17 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
     init {
         scope.launch(Dispatchers.IO) {
             for (i in 0..11) {
-                tracks[i] = buildTrack(synthesize(FREQUENCIES[i]))
+                tracks[i]      = buildTrack(synthesize(FREQUENCIES[i]))
+                tracks[i + 12] = buildTrack(synthesize(FREQUENCIES[i] * 2f))
             }
             ready = true
         }
     }
 
-    fun play(noteIndex: Int) {
+    fun play(noteIndex: Int, octaveUp: Boolean = false) {
         if (released) return
-        val idx = noteIndex.coerceIn(0, 11)
+        val base = noteIndex.coerceIn(0, 11)
+        val idx = if (octaveUp) base + 12 else base
         scope.launch(Dispatchers.IO) {
             if (released) return@launch
             val track = if (ready) tracks[idx] else null
@@ -56,14 +59,16 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
                     } else {
                         // Rare: reload failed; rebuild this track in place.
                         track.release()
-                        tracks[idx] = buildTrack(synthesize(FREQUENCIES[idx]))
+                        val freq = FREQUENCIES[base] * (if (octaveUp) 2f else 1f)
+                        tracks[idx] = buildTrack(synthesize(freq))
                         tracks[idx]?.play()
                     }
                 } catch (_: Exception) {}
             } else {
                 // Cold path: prewarm not finished yet; synthesize + play a one-shot track.
                 try {
-                    val t = buildTrack(synthesize(FREQUENCIES[idx]))
+                    val freq = FREQUENCIES[base] * (if (octaveUp) 2f else 1f)
+                    val t = buildTrack(synthesize(freq))
                     t.play()
                     Thread.sleep((DURATION_SECONDS * 1000 + 50).toLong())
                     t.stop()
@@ -77,7 +82,7 @@ class PianoSoundPlayer(private val scope: CoroutineScope) {
     fun release() {
         released = true
         scope.launch(Dispatchers.IO) {
-            for (idx in 0..11) {
+            for (idx in 0..23) {
                 try {
                     val t = tracks[idx] ?: continue
                     tracks[idx] = null

@@ -156,11 +156,6 @@ class QuizViewModel : ViewModel() {
         }
     }
 
-    fun clearSelection() {
-        if (_uiState.value.showWrong) return
-        _uiState.update { it.copy(selectedNotes = emptyList(), selectedNoteIndex = null) }
-    }
-
     fun submit() {
         val state = _uiState.value
         if (state.showWrong) return

@@ -346,10 +346,7 @@ fun QuizScreen(
                     onClick = onSoundToggle,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f),
                     shape = RoundedCornerShape(6.dp),
-                    border = BorderStroke(
-                        if (soundEnabled) 2.dp else 1.dp,
-                        if (soundEnabled) MaterialTheme.colorScheme.onSurface else Color(0xFF1E1E1E),
-                    ),
+                    border = BorderStroke(1.dp, Color(0xFF1E1E1E)),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Black,
                         contentColor = if (soundEnabled) MaterialTheme.colorScheme.onSurface else Color(0xFF666666),
@@ -389,32 +386,6 @@ fun QuizScreen(
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = "Show Answer",
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-
-                // Clear button — same note-tile border style
-                val clearEnabled = !uiState.showWrong && !uiState.showingAnswer && when (uiState.mode) {
-                    QuizMode.SCALES, QuizMode.CHORDS -> uiState.selectedNotes.isNotEmpty()
-                    QuizMode.CIRCLE -> uiState.selectedNoteIndex != null
-                }
-                OutlinedButton(
-                    onClick = { viewModel.clearSelection() },
-                    enabled = clearEnabled,
-                    modifier = Modifier.fillMaxHeight().aspectRatio(1f),
-                    shape = RoundedCornerShape(6.dp),
-                    border = BorderStroke(1.dp, if (clearEnabled) Color(0xFF1E1E1E) else Color(0xFF1E1E1E)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Black,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                        disabledContainerColor = Color(0xFF0A0A0A),
-                        disabledContentColor = Color(0xFF444444),
-                    ),
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Clear selection",
                         modifier = Modifier.size(24.dp),
                     )
                 }

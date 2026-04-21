@@ -286,27 +286,7 @@ fun QuizScreen(
                             val note = CHROMATIC_NOTES[noteIndex]
                             val isScales = uiState.mode == QuizMode.SCALES
                             val isChords = uiState.mode == QuizMode.CHORDS
-                            val chordType = uiState.chordType  // local val for smart-cast
                             val answerIndex = if (uiState.showingAnswer) uiState.answerNoteIndices.indexOf(noteIndex) else -1
-                            val showAnswerNumbers = uiState.answerNoteIndices.size > 1
-                            val isRootInAnswer = uiState.showingAnswer && isScales && showAnswerNumbers &&
-                                    noteIndex == uiState.rootNoteIndex
-                            val chordAnswerDegrees = listOf("1  8", "3", "5", "7")
-                            val bottomLabel = when {
-                                // Chords answer display: degree labels (1  8, 3, 5, 7)
-                                isChords && uiState.showingAnswer && answerIndex >= 0 ->
-                                    chordAnswerDegrees.getOrNull(answerIndex)
-                                // Chords selection display: degree labels from user taps
-                                isChords && !uiState.showingAnswer && chordType != null ->
-                                    chordSelectionLabel(noteIndex, uiState.rootNoteIndex, chordType, uiState.selectedNotes)
-                                // Scales answer: root shows "1  8", others show degree number
-                                isRootInAnswer -> "1  8"
-                                answerIndex >= 0 && showAnswerNumbers -> (answerIndex + 2).toString()
-                                // Scales selection: tap order
-                                isScales && uiState.selectedNotes.indexOf(noteIndex) >= 0 ->
-                                    (uiState.selectedNotes.indexOf(noteIndex) + 1).toString()
-                                else -> null
-                            }
                             val isSelected = when {
                                 isScales || isChords -> noteIndex in uiState.selectedNotes
                                 else -> uiState.selectedNoteIndex == noteIndex
@@ -316,7 +296,6 @@ fun QuizScreen(
                                 selected = isSelected,
                                 isAnswer = answerIndex >= 0,
                                 isAccidental = noteIndex in uiState.answerAccidentalNoteIndices,
-                                bottomLabel = bottomLabel,
                                 modifier = Modifier
                                     .weight(if (note.contains('/')) 1.5f else 1.0f)
                                     .fillMaxHeight(),
@@ -437,7 +416,6 @@ private fun NoteButton(
     selected: Boolean,
     isAnswer: Boolean,
     isAccidental: Boolean = false,
-    bottomLabel: String? = null,  // shown bottom-left (e.g. "2", "1  8", or selection order)
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
@@ -467,44 +445,5 @@ private fun NoteButton(
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.Center),
         )
-        if (bottomLabel != null) {
-            Text(
-                text = bottomLabel,
-                fontSize = if (isAnswer) 16.sp else 13.sp,
-                fontWeight = FontWeight.Normal,
-                color = contentColor,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 6.dp, bottom = 3.dp),
-            )
-        }
-    }
-}
-
-/**
- * Returns the chord degree label for a note button in CHORDS selection mode.
- * Root shows "1" on first tap, "1  8" when tapped twice. Other chord tones show their degree (3/5/7).
- * Returns null if the note is not selected or not a chord tone.
- */
-private fun chordSelectionLabel(
-    noteIndex: Int,
-    rootIndex: Int,
-    chordType: ChordType,
-    selectedNotes: List<Int>,
-): String? {
-    val intervals = QuizViewModel.CHORD_INTERVALS[chordType] ?: return null
-    val interval = (noteIndex - rootIndex + 12) % 12
-    val degreeIndex = intervals.indexOf(interval)
-    if (degreeIndex < 0) return null  // note not in this chord
-    val degrees = listOf(1, 3, 5, 7).take(intervals.size)
-    val degree = degrees[degreeIndex]
-    return if (degree == 1) {
-        when (selectedNotes.count { it == noteIndex }) {
-            0    -> null
-            1    -> "1"
-            else -> "1  8"
-        }
-    } else {
-        if (noteIndex in selectedNotes) degree.toString() else null
     }
 }

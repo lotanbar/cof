@@ -205,24 +205,19 @@ class QuizViewModel : ViewModel() {
         return sorted
     }
 
-    // Accepts any of the three valid scale-answer forms:
-    //   a) Notes 2-8  : [n1..n6, root]
-    //   b) Notes 1-7  : [n0..n6]
-    //   c) Accidentals: sharps/flats from the scale in ascending scale-degree order
-    //      (empty list valid when scale has no accidentals, e.g. C major)
+    // Accepts any of the two valid scale-answer forms (order-independent):
+    //   a) All 7 scale notes (covers both "1-7" and "2-8" ordered forms as the same set)
+    //   b) Accidentals: just the sharps/flats from the scale
+    //      (empty set valid when scale has no accidentals, e.g. C major)
     private fun isValidScaleAnswer(rootIndex: Int, type: ScaleType, selected: List<Int>): Boolean {
         val intervals = if (type == ScaleType.MAJOR) MAJOR_INTERVALS else MINOR_INTERVALS
-        val n = intervals.map { (rootIndex + it) % 12 }   // scale notes in degree order
-
-        val form2to8 = n.drop(1) + n[0]
-        val form1to7 = n
+        val n = intervals.map { (rootIndex + it) % 12 }
 
         val accidentalSet = setOf(1, 3, 6, 8, 10)
         val accidentals = n.filter { it in accidentalSet }
 
-        return selected == form2to8 ||
-               selected == form1to7 ||
-               selected == accidentals
+        return selected.toSet() == n.toSet() ||
+               selected.toSet() == accidentals.toSet()
     }
 
     private fun generateNextQuestion() {
@@ -278,16 +273,8 @@ class QuizViewModel : ViewModel() {
 
     private fun isValidChordAnswer(rootIndex: Int, type: ChordType, selected: List<Int>): Boolean {
         val intervals = CHORD_INTERVALS[type]!!
-        val n = intervals.map { (rootIndex + it) % 12 }
-        val d1 = n[0]; val d3 = n[1]; val d5 = n[2]
-        return if (type == ChordType.MAJ_TRIAD || type == ChordType.MIN_TRIAD) {
-            selected == listOf(d1, d3, d5) ||
-            selected == listOf(d3, d5, d1)
-        } else {
-            val d7 = n[3]
-            selected == listOf(d1, d3, d5, d7) ||
-            selected == listOf(d3, d5, d7, d1)
-        }
+        val chordNotes = intervals.map { (rootIndex + it) % 12 }.toSet()
+        return selected.toSet() == chordNotes
     }
 
     companion object {
